@@ -1,0 +1,186 @@
+/* styles.css */
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* Ventana principal con gradiente */
+.main-container {
+    -fx-background-color: linear-gradient(to bottom right, #667eea, #764ba2);
+}
+
+/* Panel superior personalizado */
+.title-bar {
+    -fx-background-color: rgba(0, 0, 0, 0.2);
+    -fx-background-radius: 15 15 0 0;
+    -fx-padding: 10;
+}
+
+.title-label {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+/* Botones de control de ventana */
+.window-control {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-border-radius: 15;
+    -fx-background-radius: 15;
+    -fx-cursor: hand;
+    -fx-font-size: 14px;
+}
+
+.window-control:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+}
+
+.close-button:hover {
+    -fx-background-color: #e74c3c;
+}
+
+/* Panel de contenido */
+.content-panel {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+    -fx-background-radius: 15;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 20, 0, 0, 0);
+}
+
+/* Tabla personalizada */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+.table-view .column-header {
+    -fx-background-color: linear-gradient(to bottom, #667eea, #764ba2);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.table-view .table-row-cell {
+    -fx-border-color: transparent;
+    -fx-background-color: transparent;
+}
+
+.table-view .table-row-cell:even {
+    -fx-background-color: #f8f9fa;
+}
+
+.table-view .table-row-cell:odd {
+    -fx-background-color: white;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #667eea;
+    -fx-text-fill: white;
+}
+
+/* Botones modernos */
+.primary-button {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 25;
+    -fx-border-radius: 25;
+    -fx-padding: 12 30;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.4), 10, 0, 0, 5);
+}
+
+.primary-button:hover {
+    -fx-background-color: linear-gradient(to right, #764ba2, #667eea);
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.6), 15, 0, 0, 8);
+}
+
+.primary-button:pressed {
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.3), 5, 0, 0, 3);
+}
+
+.secondary-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #667eea;
+    -fx-border-color: #667eea;
+    -fx-border-width: 2;
+    -fx-background-radius: 25;
+    -fx-border-radius: 25;
+    -fx-padding: 10 25;
+    -fx-cursor: hand;
+}
+
+.secondary-button:hover {
+    -fx-background-color: #667eea;
+    -fx-text-fill: white;
+}
+
+/* Barra de progreso personalizada */
+.progress-bar {
+    -fx-accent: #667eea;
+    -fx-background-color: #e0e0e0;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+
+.progress-bar .track {
+    -fx-background-color: #e0e0e0;
+    -fx-background-radius: 10;
+}
+
+.progress-bar .bar {
+    -fx-background-color: linear-gradient(to right, #667eea, #764ba2);
+    -fx-background-radius: 10;
+}
+
+/* Campos de texto modernos */
+.text-field, .combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 8 12;
+}
+
+.text-field:focused, .combo-box:focused {
+    -fx-border-color: #667eea;
+    -fx-effect: dropshadow(gaussian, rgba(102, 126, 234, 0.2), 10, 0, 0, 0);
+}
+
+/* Etiquetas */
+.status-label {
+    -fx-text-fill: #666;
+    -fx-font-size: 12px;
+}
+
+.title-label {
+    -fx-text-fill: #333;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+/* Panel lateral */
+.side-panel {
+    -fx-background-color: linear-gradient(to bottom, #667eea, #764ba2);
+    -fx-background-radius: 0 15 15 0;
+    -fx-padding: 20;
+}
+
+.side-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-background-radius: 10;
+    -fx-padding: 15 20;
+    -fx-alignment: center-left;
+    -fx-cursor: hand;
+    -fx-font-size: 14px;
+}
+
+.side-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+}
+
+.side-button:pressed {
+    -fx-background-color: rgba(255, 255, 255, 0.2);
+}

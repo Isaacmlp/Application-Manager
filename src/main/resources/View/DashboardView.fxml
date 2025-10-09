@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane fx:id="mainBorderPane" styleClass="main-container" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.appmanager.appmanager.Controller.DashboardController">
+
+    <top>
+        <HBox styleClass="title-bar" spacing="10" alignment="CENTER">
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="Instalador de Aplicaciones" styleClass="title-label"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="minimizeButton" text="_" styleClass="window-control" onAction="#minimizarVentana"/>
+            <Button fx:id="closeButton" text="X" styleClass="window-control close-button" onAction="#cerrarAplicacion"/>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="20" style="-fx-padding: 20;" styleClass="content-panel">
+
+            <!-- Barra de herramientas -->
+            <HBox spacing="15" alignment="CENTER_LEFT">
+                <Label text="Aplicaciones Disponibles" styleClass="title-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <TextField fx:id="campoBusqueda" promptText="Buscar aplicaciones..." HBox.hgrow="ALWAYS" maxWidth="300"/>
+                <ComboBox fx:id="comboFiltroCategoria" promptText="Categoría" maxWidth="150"/>
+                <Button text="Seleccionar Todo" styleClass="secondary-button" onAction="#seleccionarTodo"/>
+                <Button fx:id="botonInstalar" text="Instalar Seleccionadas" styleClass="primary-button" onAction="#iniciarInstalacion"/>
+            </HBox>
+
+            <!-- Tabla de aplicaciones -->
+            <TableView fx:id="tablaAplicaciones" VBox.vgrow="ALWAYS">
+                <columnResizePolicy>
+                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                </columnResizePolicy>
+            </TableView>
+
+            <!-- Barra de estado -->
+            <VBox spacing="10">
+                <ProgressBar fx:id="barraProgreso" progress="0"/>
+                <Label fx:id="etiquetaEstado" text="Selecciona las aplicaciones que deseas instalar" styleClass="status-label"/>
+            </VBox>
+
+        </VBox>
+    </center>
+
+</BorderPane>
