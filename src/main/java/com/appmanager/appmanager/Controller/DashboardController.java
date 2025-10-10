@@ -1,6 +1,7 @@
 package com.appmanager.appmanager.Controller;
 
 import com.appmanager.appmanager.Model.DashboardModel;
+import com.appmanager.appmanager.Utils.MetadataExtractor;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -13,9 +14,16 @@ import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.stage.Stage;
 
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+
 
 public class DashboardController implements Initializable  {
 
@@ -31,33 +39,69 @@ public class DashboardController implements Initializable  {
         private ObservableList<DashboardModel> todasLasAplicaciones;
         private FilteredList<DashboardModel> aplicacionesFiltradas;
 
+        ClassLoader classLoader = MetadataExtractor.class.getClassLoader();
+        URL resourcesUrl = Objects.requireNonNull(classLoader.getResource("Setups")).toURI().toURL();
+
+        URI uri = resourcesUrl.toURI(); // decodifica correctamente
+        Path path = Paths.get(uri); // convierte a ruta válida
+        File carpeta = path.toFile();
+
+    public DashboardController() throws URISyntaxException, MalformedURLException {
+    }
+
+
         @Override
         public void initialize(URL location, ResourceBundle resources) {
-            inicializarDatos();
+            Map<String, Map<String, String>> result = MetadataExtractor.getExecutableMetadataFromFolder(carpeta.getAbsolutePath());
+
+            inicializarDatos(result);
             configurarInterfaz();
             configurarFiltros();
         }
 
-       /* private void InicializarSetupDinamicamente (Map<String, String> Metadato ) {
-            while (Metadato.) {
-                FXCollections.observableArrayList(new DashboardModel(
-                        Metadato.get("Name"),
-                        Metadato.get("FileDescription"),
-                        Metadato.get("FileVersion"),
-                        Double.parseDouble(Metadato.get("SizeMB")),
-                        "Categoría", // Aquí podrías asignar una categoría basada en alguna lógica
-                        "URL de descarga", // Aquí podrías asignar una URL de descarga basada en alguna lógica
-                        "Comando de instalación" // Aquí podrías asignar un comando de instalación basado en alguna lógica
-                ));
+
+    private double getSafeDouble(Map<String, String> metadata, String key, double defaultValue) {
+        try {
+            String value = metadata.get(key);
+            if (value != null && !value.trim().isEmpty()) {
+                // ✅ CORRECCIÓN: Reemplazar coma por punto para parsing
+                String cleanValue = value.replace(",", ".")  // Cambiar coma por punto
+                        .replaceAll("[^0-9.]", "") // Quitar caracteres no numéricos
+                        .trim();
+                if (!cleanValue.isEmpty()) {
+                    return Double.parseDouble(cleanValue);
+                }
             }
-            todasLasAplicaciones = FXCollections.observableArrayList();
+        } catch (NumberFormatException e) {
+            System.err.println("⚠️ Error parseando '" + key + "': " + metadata.get(key));
+        }
+        return defaultValue;
+    }
 
-            aplicacionesFiltradas = new FilteredList<>(todasLasAplicaciones);
-            tablaAplicaciones.setItems(aplicacionesFiltradas);
+       private void inicializarDatos (Map<String, Map<String, String>> Metadato ) {
+           List<DashboardModel> lista = new ArrayList<>();
+           double sizeMB;
+           for (Map.Entry<String, Map<String, String>> entry : Metadato.entrySet()) {
+               Map<String, String> metadata = entry.getValue();
+               System.out.println(metadata.get("RelativePath") + "Path" );
+               lista.add(new DashboardModel(
+                       metadata.get("FileName"),
+                       metadata.get("FileDescription"),
+                       metadata.get("FileVersion"),
+                       sizeMB = getSafeDouble(metadata, "SizeMB", 0.0),
+                       "Categoría",
+                       metadata.get("RelativePath"),
+                       "Comando de instalación"
 
-        }*/
+               ));
+           }
 
-        private void inicializarDatos() {
+           todasLasAplicaciones = FXCollections.observableArrayList(lista);
+           aplicacionesFiltradas = new FilteredList<>(todasLasAplicaciones);
+           tablaAplicaciones.setItems(aplicacionesFiltradas);
+        }
+
+        /*private void inicializarDatos() {
             todasLasAplicaciones = FXCollections.observableArrayList(
                     new DashboardModel("Google Chrome", "Navegador web rápido", "115.0", 120.5,
                             "Navegadores", "https://dl.google.com/chrome/install/chrome.exe",
@@ -86,7 +130,7 @@ public class DashboardController implements Initializable  {
 
             aplicacionesFiltradas = new FilteredList<>(todasLasAplicaciones);
             tablaAplicaciones.setItems(aplicacionesFiltradas);
-        }
+        }*/
 
         private void configurarInterfaz() {
             // Configurar columnas de la tabla

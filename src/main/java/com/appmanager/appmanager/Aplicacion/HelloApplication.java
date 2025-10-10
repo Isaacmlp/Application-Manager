@@ -7,8 +7,12 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.scene.image.Image;
 import javafx.stage.StageStyle;
-import java.io.IOException;
+
+import java.io.File;
+import java.net.URI;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Objects;
 import com.appmanager.appmanager.Utils.MetadataExtractor;
@@ -18,30 +22,9 @@ public class HelloApplication extends Application {
     private double xOffset = 0;
     private double yOffset = 0;
 
-    String Metadata;
-
     @Override
     public void start(Stage primaryStage) throws Exception {
-        System.out.println(getClass().getResource("/Setups/"));
-
-        ClassLoader classLoader = MetadataExtractor.class.getClassLoader();
-        URL resourcesUrl = classLoader.getResource("Setups");
-        assert resourcesUrl != null;
-        Map<String, Map<String, String>> result = MetadataExtractor.getExeMetadataFromFolder(resourcesUrl.toString());
-
-        System.out.println("\n=== RESULTADOS OBTENIDOS ===");
-        for (Map.Entry<String, Map<String, String>> entry : result.entrySet()) {
-            System.out.println("\nArchivo: " + entry.getKey());
-            Map<String, String> metadata = entry.getValue();
-            System.out.println("  Nombre: " + metadata.get("Name"));
-            System.out.println("  Versión: " + metadata.get("FileVersion"));
-            System.out.println("  Descripción: " + metadata.get("FileDescription"));
-            System.out.println("  Tamaño: " + metadata.get("SizeMB") + " MB");
-
-            if (metadata.containsKey("Error")) {
-                System.out.println("  ERROR: " + metadata.get("Error"));
-            }
-        }
+        System.out.println(Objects.requireNonNull(getClass().getResource("/Setups/")).toURI());
 
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getResource("/View/DashboardView.fxml")));
         Parent root = loader.load();
