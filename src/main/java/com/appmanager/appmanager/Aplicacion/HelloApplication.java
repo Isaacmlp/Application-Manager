@@ -16,6 +16,7 @@ public class HelloApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
+        System.out.println(getClass().getResource("/View/DashboardView.fxml"));
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getResource("/View/DashboardView.fxml")));
         Parent root = loader.load();
 
@@ -31,11 +32,11 @@ public class HelloApplication extends Application {
         });
 
         Scene scene = new Scene(root, 1000, 700);
-        scene.getStylesheets().add(getClass().getResource("/Style/styles.css").toExternalForm());
+        scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/Style/Style.css")).toExternalForm());
 
         primaryStage.setTitle("Instalador de Aplicaciones");
         primaryStage.initStyle(StageStyle.TRANSPARENT); // Para diseño personalizado
-       // primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/app-icon.png")));
+        //primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/app-icon.png")));
         primaryStage.setScene(scene);
         primaryStage.show();
     }
