@@ -36,7 +36,7 @@ public class HelloApplication extends Application {
 
         primaryStage.setTitle("Instalador de Aplicaciones");
         primaryStage.initStyle(StageStyle.TRANSPARENT); // Para diseño personalizado
-        //primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/images/app-icon.png")));
+        primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/Image/img.png"))));
         primaryStage.setScene(scene);
         primaryStage.show();
     }
