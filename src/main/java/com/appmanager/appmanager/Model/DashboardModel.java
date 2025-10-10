@@ -51,4 +51,7 @@ public class DashboardModel {
 
         public String getComandoInstalacion() { return comandoInstalacion.get(); }
         public StringProperty comandoInstalacionProperty() { return comandoInstalacion; }
+
+
+
 }

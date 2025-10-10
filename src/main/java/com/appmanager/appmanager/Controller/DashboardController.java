@@ -38,6 +38,25 @@ public class DashboardController implements Initializable  {
             configurarFiltros();
         }
 
+       /* private void InicializarSetupDinamicamente (Map<String, String> Metadato ) {
+            while (Metadato.) {
+                FXCollections.observableArrayList(new DashboardModel(
+                        Metadato.get("Name"),
+                        Metadato.get("FileDescription"),
+                        Metadato.get("FileVersion"),
+                        Double.parseDouble(Metadato.get("SizeMB")),
+                        "Categoría", // Aquí podrías asignar una categoría basada en alguna lógica
+                        "URL de descarga", // Aquí podrías asignar una URL de descarga basada en alguna lógica
+                        "Comando de instalación" // Aquí podrías asignar un comando de instalación basado en alguna lógica
+                ));
+            }
+            todasLasAplicaciones = FXCollections.observableArrayList();
+
+            aplicacionesFiltradas = new FilteredList<>(todasLasAplicaciones);
+            tablaAplicaciones.setItems(aplicacionesFiltradas);
+
+        }*/
+
         private void inicializarDatos() {
             todasLasAplicaciones = FXCollections.observableArrayList(
                     new DashboardModel("Google Chrome", "Navegador web rápido", "115.0", 120.5,
