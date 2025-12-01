@@ -1,5 +1,6 @@
 package com.appmanager.appmanager.Aplicacion;
 
+import com.appmanager.appmanager.Model.AppInstall;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -8,22 +9,24 @@ import javafx.stage.Stage;
 import javafx.scene.image.Image;
 import javafx.stage.StageStyle;
 
-import java.io.File;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.Objects;
-import com.appmanager.appmanager.Utils.MetadataExtractor;
 
 
 public class HelloApplication extends Application {
     private double xOffset = 0;
     private double yOffset = 0;
 
+    public HelloApplication() throws URISyntaxException {
+    }
+
     @Override
     public void start(Stage primaryStage) throws Exception {
+
         System.out.println(Objects.requireNonNull(getClass().getResource("/Setups/")).toURI());
 
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getResource("/View/DashboardView.fxml")));

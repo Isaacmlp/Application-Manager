@@ -1,5 +1,6 @@
 package com.appmanager.appmanager.Controller;
 
+import com.appmanager.appmanager.Model.AppInstall;
 import com.appmanager.appmanager.Model.DashboardModel;
 import com.appmanager.appmanager.Utils.MetadataExtractor;
 import javafx.fxml.FXML;
@@ -15,6 +16,7 @@ import javafx.collections.transformation.FilteredList;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -36,6 +38,7 @@ public class DashboardController implements Initializable  {
         @FXML private Button botonInstalar;
         @FXML private VBox panelLateral;
 
+        private AppInstall appInstall = new AppInstall();
         private ObservableList<DashboardModel> todasLasAplicaciones;
         private FilteredList<DashboardModel> aplicacionesFiltradas;
 
@@ -53,7 +56,6 @@ public class DashboardController implements Initializable  {
         @Override
         public void initialize(URL location, ResourceBundle resources) {
             Map<String, Map<String, String>> result = MetadataExtractor.getExecutableMetadataFromFolder(carpeta.getAbsolutePath());
-
             inicializarDatos(result);
             configurarInterfaz();
             configurarFiltros();
@@ -101,36 +103,6 @@ public class DashboardController implements Initializable  {
            tablaAplicaciones.setItems(aplicacionesFiltradas);
         }
 
-        /*private void inicializarDatos() {
-            todasLasAplicaciones = FXCollections.observableArrayList(
-                    new DashboardModel("Google Chrome", "Navegador web rápido", "115.0", 120.5,
-                            "Navegadores", "https://dl.google.com/chrome/install/chrome.exe",
-                            "chrome_installer.exe /silent /install"),
-
-                    new DashboardModel("Mozilla Firefox", "Navegador open-source", "116.0", 200.0,
-                            "Navegadores", "https://download.mozilla.org/?product=firefox-latest",
-                            "firefox_installer.exe -ms"),
-
-                    new DashboardModel("VLC Media Player", "Reproductor multimedia", "3.0.18", 85.7,
-                            "Multimedia", "https://get.videolan.org/vlc/3.0.18/win64/vlc-3.0.18-win64.exe",
-                            "vlc_installer.exe /S"),
-
-                    new DashboardModel("Visual Studio Code", "Editor de código", "1.81.0", 300.2,
-                            "Desarrollo", "https://code.visualstudio.com/sha/download?build=stable&os=win32-x64",
-                            "VSCodeSetup.exe /silent /mergetasks=!runcode"),
-
-                    new DashboardModel("7-Zip", "Compresor de archivos", "23.01", 4.5,
-                            "Utilidades", "https://www.7-zip.org/a/7z2301-x64.exe",
-                            "7z_installer.exe /S"),
-
-                    new DashboardModel("Discord", "App de comunicación", "1.0.9016", 150.8,
-                            "Comunicación", "https://dl.discordapp.net/apps/win/DiscordSetup.exe",
-                            "DiscordSetup.exe --silent")
-            );
-
-            aplicacionesFiltradas = new FilteredList<>(todasLasAplicaciones);
-            tablaAplicaciones.setItems(aplicacionesFiltradas);
-        }*/
 
         private void configurarInterfaz() {
             // Configurar columnas de la tabla
@@ -228,14 +200,18 @@ public class DashboardController implements Initializable  {
                         .filter(DashboardModel::isSeleccionado)
                         .collect(Collectors.toList());
 
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/instalacion-view.fxml"));
-                Parent vistaInstalacion = loader.load();
+                List<String> nombresSeleccionadas = appsSeleccionadas.stream()
+                        .map(DashboardModel::getNombre)
+                        .collect(Collectors.toList());
 
-               /* InstalacionController controller = loader.getController();
-                controller.setAplicacionesAInstalar(appsSeleccionadas);
-                controller.setPanelPrincipal(mainBorderPane);*/
+                if (!nombresSeleccionadas.isEmpty()) {
+                    for (String Nombre : nombresSeleccionadas) {
+                        System.out.println("Instalando: " + Nombre);
+                        appInstall.installApp(Nombre);
+                    }
+                }
 
-                mainBorderPane.setCenter(vistaInstalacion);
+
 
             } catch (Exception e) {
                 mostrarError("Error al iniciar instalación: " + e.getMessage());
@@ -270,5 +246,13 @@ public class DashboardController implements Initializable  {
             alert.setContentText(mensaje);
             alert.showAndWait();
         }
+
+    public AppInstall getAppInstall() {
+        return appInstall;
+    }
+
+    public void setAppInstall(AppInstall appInstall) {
+        this.appInstall = appInstall;
+    }
 }
 
