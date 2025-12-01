@@ -208,11 +208,9 @@ public class DashboardController implements Initializable  {
                     for (String Nombre : nombresSeleccionadas) {
                         System.out.println("Instalando: " + Nombre);
                         appInstall.installApp(Nombre);
+                        ventanaInstalacion("Instalando: " + Nombre);
                     }
                 }
-
-
-
             } catch (Exception e) {
                 mostrarError("Error al iniciar instalación: " + e.getMessage());
             }
@@ -246,6 +244,14 @@ public class DashboardController implements Initializable  {
             alert.setContentText(mensaje);
             alert.showAndWait();
         }
+
+        public void ventanaInstalacion (String mensaje){
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Instalando...");
+            alert.setHeaderText(null);
+            alert.setContentText(mensaje);
+            alert.showAndWait();
+       }
 
     public AppInstall getAppInstall() {
         return appInstall;
