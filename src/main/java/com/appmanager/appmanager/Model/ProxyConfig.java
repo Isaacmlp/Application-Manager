@@ -58,7 +58,7 @@ public class ProxyConfig {
             System.out.println("Configuracion de Proxy Exitosa");
             System.out.println("Proxy actual: " + Proxys[numberProxyInArray] );
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
     }
 
