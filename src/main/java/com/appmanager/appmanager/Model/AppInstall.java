@@ -1,8 +1,11 @@
 package com.appmanager.appmanager.Model;
 
+import com.appmanager.appmanager.Controller.DashboardController;
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -12,8 +15,9 @@ import java.nio.file.Paths;
 public class AppInstall extends Component {
     // Constante para almacenar la Ruta hacia los setups
     private final Path setupsDir;
+    public DashboardController dc;
 
-    public AppInstall() throws URISyntaxException {
+    public AppInstall() throws URISyntaxException, MalformedURLException {
         ClassLoader classLoader = AppInstall.class.getClassLoader();
         URL resource = classLoader.getResource("Setups");
         if (resource == null) {
@@ -23,7 +27,7 @@ public class AppInstall extends Component {
         setupsDir = Paths.get(resource.toURI());
     }
 
-    public void installApp(String appName) throws IOException, InterruptedException {
+    public String installApp(String appName) throws IOException, InterruptedException {
         Path installer = setupsDir.resolve(appName);
         if (!Files.exists(installer)) {
             throw new IOException("Instalador no encontrado: " + installer);
@@ -33,9 +37,9 @@ public class AppInstall extends Component {
         Process p = pb.start();
         int exitCode = p.waitFor();
         if (exitCode == 0) {
-            JOptionPane.showMessageDialog(this,appName + " Instalado Exitosamente" + "\n Status" + exitCode );
+            return appName + " Instalado Exitosamente" + "\n Status" + exitCode ;
         } else {
-            JOptionPane.showMessageDialog(this,appName + " No se pudo instalar" + "\n Status" + exitCode);
+            return appName + " No se pudo instalar" + "\n Status" + exitCode;
         }
     }
 }

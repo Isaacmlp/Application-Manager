@@ -2,11 +2,22 @@ package com.appmanager.appmanager.Model;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Objects;
+
+import com.appmanager.appmanager.Controller.DashboardController;
+import io.github.cdimascio.dotenv.Dotenv;
+
 
 public class ProxyConfig {
-    //Array para guardar todos los proxys
-    static String[] Proxys = {"10.25.0.152:3128","10.25.0.152:3128","10.25.0.152:3128"} ;
-    static String registryPath = "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings";
+    static Dotenv dotenv = Dotenv.load();
+    static DashboardController dc;
+
+
+    static String[] Proxys = Objects.requireNonNull(dotenv.get("PROXYS")).split(";");
+    static String registryPath = dotenv.get("REGISTRY_PATH");
+    // Excepciones que quieres aplicar (separadas por ;)
+    static String exceptions = "*.mired.local;localhost;192.168.*";
+
 
     public ProxyConfig(String[] proxys, String registrypath) {
         Proxys = proxys;
@@ -35,6 +46,18 @@ public class ProxyConfig {
             )
         );
 
+        // Crear el ProcessBuilder para agregar/modificar ProxyOverride
+        ProcessBuilder setProxyExceptions = new ProcessBuilder(
+                Arrays.asList(
+                        "reg","add",registryPath,
+                        "/v","ProxyOverride",
+                        "/t","REG_SZ",
+                        "/d",exceptions,
+                        "/f"
+                )
+        );
+
+
         ProcessBuilder setProxy = new ProcessBuilder(
             Arrays.asList(
                 "reg","add",registryPath,
@@ -48,9 +71,13 @@ public class ProxyConfig {
             disableAutoDetect.inheritIO();
             disableAutoDetect.start();
 
+            setProxyExceptions.start().waitFor();
+
+            dc.message("Ejecutando REG ADD para habilitar el proxy");
             System.out.println("Ejecutando REG ADD para habilitar el proxy");
             enableProxy.start().waitFor();
 
+            dc.message("Ejecutando REG ADD para establecer la direccion del proxy");
             System.out.println("Ejecutando REG ADD para establecer la direccion del proxy");
             setProxy.start().waitFor();
 
@@ -62,8 +89,4 @@ public class ProxyConfig {
         }
     }
 
-
-    public static void main(String[] args) {
-        ConfigurarProxy(0);
-    }
 }

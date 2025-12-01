@@ -207,8 +207,8 @@ public class DashboardController implements Initializable  {
                 if (!nombresSeleccionadas.isEmpty()) {
                     for (String Nombre : nombresSeleccionadas) {
                         System.out.println("Instalando: " + Nombre);
-                        appInstall.installApp(Nombre);
-                        ventanaInstalacion("Instalando: " + Nombre);
+                        String Result = appInstall.installApp(Nombre);
+                        message(Result);
                     }
                 }
             } catch (Exception e) {
@@ -252,6 +252,19 @@ public class DashboardController implements Initializable  {
             alert.setContentText(mensaje);
             alert.showAndWait();
        }
+
+    public void message(String mensaje) {
+        javafx.application.Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Información");
+            alert.setHeaderText(null);
+            alert.setContentText(mensaje);
+            if (mainBorderPane != null && mainBorderPane.getScene() != null) {
+                alert.initOwner(mainBorderPane.getScene().getWindow());
+            }
+            alert.showAndWait();
+        });
+    }
 
     public AppInstall getAppInstall() {
         return appInstall;
