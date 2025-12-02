@@ -38,6 +38,8 @@ public class DashboardController implements Initializable  {
         @FXML private Button botonInstalar;
         @FXML private VBox panelLateral;
 
+
+        private List<DashboardModel> lista = new ArrayList<>();
         private AppInstall appInstall = new AppInstall();
         private ObservableList<DashboardModel> todasLasAplicaciones;
         private FilteredList<DashboardModel> aplicacionesFiltradas;
@@ -81,7 +83,6 @@ public class DashboardController implements Initializable  {
     }
 
        private void inicializarDatos (Map<String, Map<String, String>> Metadato ) {
-           List<DashboardModel> lista = new ArrayList<>();
            double sizeMB;
            for (Map.Entry<String, Map<String, String>> entry : Metadato.entrySet()) {
                Map<String, String> metadata = entry.getValue();
@@ -204,11 +205,18 @@ public class DashboardController implements Initializable  {
                         .map(DashboardModel::getNombre)
                         .collect(Collectors.toList());
 
+                List<String> RutasSeleccionadas = appsSeleccionadas.stream()
+                        .map(DashboardModel::getUrlDescarga)
+                        .collect(Collectors.toList());
+
                 if (!nombresSeleccionadas.isEmpty()) {
                     for (String Nombre : nombresSeleccionadas) {
-                        System.out.println("Instalando: " + Nombre);
-                        String Result = appInstall.installApp(Nombre);
-                        message(Result);
+                        for(String Ruta : RutasSeleccionadas){
+                            System.out.println("Instalando: " + Nombre);
+                            System.out.println("Ruta: " + RutasSeleccionadas);
+                            String Result = appInstall.installApp(Nombre,Ruta);
+                            message(Result);
+                        }
                     }
                 }
             } catch (Exception e) {
