@@ -3,6 +3,7 @@ package com.appmanager.appmanager.Utils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -114,7 +115,7 @@ public class MetadataExtractor {
                     String relativePath = getRelativePath(file, baseFolderPath);
                     int depth = countPathDepth(relativePath);
 
-                    // Si DISK1 está a poca profundidad (ej: directamente en Setups o a 1-2 niveles)
+                    // Si DISK1 está a poca profundidad (ej.: directamente en Setups o a 1-2 niveles)
                     if (depth <= 3) {
                         System.out.println("📁 Carpeta DISK1 en ubicación raíz detectada: " + file.getAbsolutePath());
 
@@ -314,7 +315,7 @@ public class MetadataExtractor {
             System.err.println("Error analizando " + file.getName() + ": " + e.getMessage());
             metadata.put("Error", e.getMessage());
 
-            // Aún así guardar información básica
+            // Aun así guardar información básica
             metadata.put("FileVersion", "N/A (Error: " + e.getMessage() + ")");
             metadata.put("ProductName", "N/A (Error en extracción)");
         }
@@ -389,7 +390,7 @@ public class MetadataExtractor {
             Process process = processBuilder.start();
 
             BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), "UTF-8")
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)
             );
 
             String line;
@@ -500,7 +501,7 @@ public class MetadataExtractor {
 
             // Leer la salida
             BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), "UTF-8")
+                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8)
             );
 
             String line;

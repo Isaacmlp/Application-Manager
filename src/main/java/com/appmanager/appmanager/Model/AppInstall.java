@@ -5,7 +5,6 @@ import com.appmanager.appmanager.Controller.DashboardController;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -17,7 +16,7 @@ public class AppInstall extends Component {
     private final Path setupsDir;
     public DashboardController dc;
 
-    public AppInstall() throws URISyntaxException, MalformedURLException {
+    public AppInstall() throws URISyntaxException{
         ClassLoader classLoader = AppInstall.class.getClassLoader();
         URL resource = classLoader.getResource("Setups");
         if (resource == null) {
@@ -32,18 +31,66 @@ public class AppInstall extends Component {
         if (!Files.exists(installer)) {
             throw new IOException("Instalador no encontrado: " + installer);
         }
-        ProcessBuilder pb = new ProcessBuilder(installer.toAbsolutePath().toString(), "/s");
-        System.out.println(absolutePath);
-        pb.inheritIO();
-        Process p = pb.start();
-        int exitCode = p.waitFor();
-        if (exitCode == 0) {
-            return appName + " Instalado Exitosamente" + "\n Status" + exitCode ;
-        } else {
-            System.out.println(appName + " No se pudo instalar" + "\n Status" + exitCode);
-            return appName + " No se pudo instalar" + "\n Status" + exitCode;
+        System.out.println(appName);
+        if (appName.equals("SetupAll.exe")) {
+            System.out.println(setupsDir.resolve("CustomInstall.ini").toAbsolutePath().toString());
+            ProcessBuilder pbAll = new ProcessBuilder(
+                    installer.toAbsolutePath().toString(),
+                    "/Silent",
+                    "/NoDlg",
+                    "/IniFile="+ setupsDir.resolve("CustomInstall.ini").toAbsolutePath().toString()
+            );
+            pbAll.inheritIO();
+            Process p = pbAll.start();
+            int exitCode = p.waitFor();
+            if (exitCode == 0) {
+                return appName + " Instalado Exitosamente" + "\n Status" + exitCode;
+            } else {
+                System.out.println(appName + " No se pudo instalar" + "\n Status" + exitCode);
+                return appName + " No se pudo instalar" + "\n Status" + exitCode;
+            }
+
         }
+
+
+        // Process Builder Para Instalar .msi
+        if (installer.toString().contains(".msi")) {
+            ProcessBuilder pbMsi = new ProcessBuilder(
+                    "msiexec",
+                    "/i",
+                    installer.toAbsolutePath().toString(),
+                    "/qn"
+            );
+            pbMsi.inheritIO();
+            Process p = pbMsi.start();
+            int exitCode = p.waitFor();
+            if (exitCode == 0) {
+                return appName + " Instalado Exitosamente" + "\n Status" + exitCode;
+            } else {
+                System.out.println(appName + " No se pudo instalar" + "\n Status" + exitCode);
+                return appName + " No se pudo instalar" + "\n Status" + exitCode;
+            }
+
+            // Process Builder Para Instalar .exe
+        } else if (installer.toString().contains(".exe")) {
+            ProcessBuilder pb = new ProcessBuilder(installer.toAbsolutePath().toString(), "/s");
+            System.out.println(absolutePath);
+            pb.inheritIO();
+            Process p = pb.start();
+            int exitCode = p.waitFor();
+            if (exitCode == 0) {
+                return appName + " Instalado Exitosamente" + "\n Status" + exitCode;
+            } else {
+                System.out.println(appName + " No se pudo instalar" + "\n Status" + exitCode);
+                return appName + " No se pudo instalar" + "\n Status" + exitCode;
+            }
+        }
+        return appName + " Tipo de instalador no soportado.";
     }
 }
+
+
+
+
 
 
