@@ -1,5 +1,7 @@
 package com.appmanager.appmanager.Utils;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -344,23 +346,7 @@ public class MetadataExtractor {
                 System.out.println("   ⚠ Extracción normal falló, intentando método alternativo...");
 
                 // Método alternativo simplificado
-                String escapedPath = file.getAbsolutePath().replace("'", "''");
-                String simpleCommand =
-                        "try { " +
-                                "    $installer = New-Object -ComObject WindowsInstaller.Installer; " +
-                                "    $db = $installer.OpenDatabase('" + escapedPath + "', 0); " +
-                                "    $query = 'SELECT Value FROM Property WHERE Property = \"ProductVersion\"'; " +
-                                "    $view = $db.OpenView($query); " +
-                                "    $view.Execute(); " +
-                                "    $record = $view.Fetch(); " +
-                                "    if ($record) { " +
-                                "        $version = $record.StringData(1); " +
-                                "        Write-Output 'ProductVersion:' + $version; " +
-                                "    } " +
-                                "    $view.Close(); " +
-                                "} catch { " +
-                                "    Write-Output 'Error:Fallback extraction failed'; " +
-                                "}";
+                String simpleCommand = getString(file);
 
                 executeSimplePowerShellForSIAR(simpleCommand, metadata);
 
@@ -376,6 +362,26 @@ public class MetadataExtractor {
             metadata.put("FileVersion", "N/A (Error en SIAR.msi)");
             metadata.put("ProductName", "SIAR 2005 (estimado)");
         }
+    }
+
+    @NotNull
+    private static String getString(File file) {
+        String escapedPath = file.getAbsolutePath().replace("'", "''");
+        return "try { " +
+                "    $installer = New-Object -ComObject WindowsInstaller.Installer; " +
+                "    $db = $installer.OpenDatabase('" + escapedPath + "', 0); " +
+                "    $query = 'SELECT Value FROM Property WHERE Property = \"ProductVersion\"'; " +
+                "    $view = $db.OpenView($query); " +
+                "    $view.Execute(); " +
+                "    $record = $view.Fetch(); " +
+                "    if ($record) { " +
+                "        $version = $record.StringData(1); " +
+                "        Write-Output 'ProductVersion:' + $version; " +
+                "    } " +
+                "    $view.Close(); " +
+                "} catch { " +
+                "    Write-Output 'Error:Fallback extraction failed'; " +
+                "}";
     }
 
     /**
