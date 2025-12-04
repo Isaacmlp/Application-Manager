@@ -20,9 +20,9 @@ public class FileChoose {
 
         Window window = owner.getScene().getWindow();
         File file = fileChooser.showOpenDialog(window);
-
+        File destDir = new File("resources/Setups");
         if (file != null) {
-            return moveFile(file);
+            return copyDirectory(file,destDir);
         }
         return null;
     }
@@ -61,6 +61,50 @@ public class FileChoose {
         } catch (IOException e) {
             e.printStackTrace();
             showError("Error al mover archivo", e.getMessage());
+            return null;
+        }
+    }
+
+    public String copyDirectory(File sourceDir, File destDir) {
+        if (sourceDir == null || !sourceDir.exists() || !sourceDir.isDirectory()) {
+            showError("Error al copiar carpeta", "Directorio origen inválido");
+            return null;
+        }
+        if (destDir == null) {
+            showError("Error al copiar carpeta", "Directorio destino inválido");
+            return null;
+        }
+
+        Path sourcePath = sourceDir.toPath();
+        Path destParent = destDir.toPath();
+        Path targetRoot = destParent.resolve(sourcePath.getFileName());
+
+        try {
+            Files.createDirectories(targetRoot);
+
+            try {
+                Files.walk(sourcePath).forEach(source -> {
+                    Path relative = sourcePath.relativize(source);
+                    Path target = targetRoot.resolve(relative);
+                    try {
+                        if (Files.isDirectory(source)) {
+                            Files.createDirectories(target);
+                        } else {
+                            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            } catch (RuntimeException re) {
+                Throwable cause = re.getCause();
+                showError("Error al copiar carpeta", cause != null ? cause.getMessage() : re.getMessage());
+                return null;
+            }
+
+            return targetRoot.toString();
+        } catch (IOException e) {
+            showError("Error al copiar carpeta", e.getMessage());
             return null;
         }
     }

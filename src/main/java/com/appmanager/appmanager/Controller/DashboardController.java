@@ -2,6 +2,7 @@ package com.appmanager.appmanager.Controller;
 
 import com.appmanager.appmanager.Model.AppInstall;
 import com.appmanager.appmanager.Model.DashboardModel;
+import com.appmanager.appmanager.Utils.FileChoose;
 import com.appmanager.appmanager.Utils.MetadataExtractor;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -37,6 +38,8 @@ public class DashboardController implements Initializable  {
         @FXML private Label etiquetaEstado;
         @FXML private Button botonInstalar;
         @FXML private VBox panelLateral;
+
+        public FileChoose Fc = new FileChoose();
 
 
         private List<DashboardModel> lista = new ArrayList<>();
@@ -216,6 +219,13 @@ public class DashboardController implements Initializable  {
                             System.out.println("Ruta: " + RutasSeleccionadas);
                             String Result = appInstall.installApp(Nombre,Ruta);
                             message(Result);
+                            if (Nombre.contains("Thunderbird")) {
+                                boolean thunderbird = confirmacion("Desea Agregar Carpeta de perfil?");
+
+                                if (thunderbird) {
+                                    Fc.showFileChooser(botonInstalar);
+                                }
+                            }
                         }
                     }
                 }
@@ -260,6 +270,18 @@ public class DashboardController implements Initializable  {
             alert.setContentText(mensaje);
             alert.showAndWait();
        }
+
+    public boolean confirmacion(String mensaje){
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirmación");
+        alert.setHeaderText(null);
+        alert.setContentText(mensaje);
+        if (mainBorderPane != null && mainBorderPane.getScene() != null) {
+            alert.initOwner(mainBorderPane.getScene().getWindow());
+        }
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && (result.get() == ButtonType.OK || result.get() == ButtonType.YES);
+    }
 
     public void message(String mensaje) {
         javafx.application.Platform.runLater(() -> {
