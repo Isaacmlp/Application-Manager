@@ -5,9 +5,7 @@ import com.appmanager.appmanager.Model.DashboardModel;
 import com.appmanager.appmanager.Utils.FileChoose;
 import com.appmanager.appmanager.Utils.MetadataExtractor;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -15,9 +13,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.stage.Stage;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,7 +23,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 public class DashboardController implements Initializable  {
@@ -42,7 +39,7 @@ public class DashboardController implements Initializable  {
         public FileChoose Fc = new FileChoose();
 
 
-        private List<DashboardModel> lista = new ArrayList<>();
+        public List<DashboardModel> lista = new ArrayList<>();
         private AppInstall appInstall = new AppInstall();
         private ObservableList<DashboardModel> todasLasAplicaciones;
         private FilteredList<DashboardModel> aplicacionesFiltradas;
@@ -67,9 +64,9 @@ public class DashboardController implements Initializable  {
         }
 
 
-    private double getSafeDouble(Map<String, String> metadata, String key, double defaultValue) {
+    private double getSafeDouble(Map<String, String> metadata) {
         try {
-            String value = metadata.get(key);
+            String value = metadata.get("SizeMB");
             if (value != null && !value.trim().isEmpty()) {
                 // ✅ CORRECCIÓN: Reemplazar coma por punto para parsing
                 String cleanValue = value.replace(",", ".")  // Cambiar coma por punto
@@ -80,9 +77,9 @@ public class DashboardController implements Initializable  {
                 }
             }
         } catch (NumberFormatException e) {
-            System.err.println("⚠️ Error parseando '" + key + "': " + metadata.get(key));
+            System.err.println("⚠️ Error parseando '" + "SizeMB" + "': " + metadata.get("SizeMB"));
         }
-        return defaultValue;
+        return 0.0;
     }
 
        private void inicializarDatos (Map<String, Map<String, String>> Metadato ) {
@@ -94,7 +91,7 @@ public class DashboardController implements Initializable  {
                        metadata.get("FileName"),
                        metadata.get("FileDescription"),
                        metadata.get("FileVersion"),
-                       sizeMB = getSafeDouble(metadata, "SizeMB", 0.0),
+                       sizeMB = getSafeDouble(metadata),
                        "Categoría",
                        metadata.get("RelativePath"),
                        "Comando de instalación"
@@ -119,43 +116,50 @@ public class DashboardController implements Initializable  {
             TableColumn<DashboardModel, String> columnaVersion = new TableColumn<>("Versión");
             columnaVersion.setCellValueFactory(cellData -> cellData.getValue().versionProperty());
 
-            TableColumn<DashboardModel, Double> columnaTamaño = new TableColumn<>("Tamaño (MB)");
-            columnaTamaño.setCellValueFactory(cellData -> cellData.getValue().tamañoProperty().asObject());
+            TableColumn<DashboardModel, Double> columnaTamano = new TableColumn<>("Tamaño (MB)");
+            columnaTamano.setCellValueFactory(cellData -> cellData.getValue().tamañoProperty().asObject());
 
-            TableColumn<DashboardModel, Boolean> columnaSeleccion = new TableColumn<>("Instalar");
-            columnaSeleccion.setCellValueFactory(cellData -> cellData.getValue().seleccionadoProperty());
-            columnaSeleccion.setCellFactory(tc -> new TableCell<DashboardModel, Boolean>() {
-                private final CheckBox checkBox = new CheckBox();
-                {
-                    checkBox.setOnAction(e -> {
-                        DashboardModel app = getTableView().getItems().get(getIndex());
-                        app.setSeleccionado(checkBox.isSelected());
-                        actualizarBotonInstalar();
-                    });
-                }
-
-                @Override
-                protected void updateItem(Boolean selected, boolean empty) {
-                    super.updateItem(selected, empty);
-                    if (empty) {
-                        setGraphic(null);
-                    } else {
-                        checkBox.setSelected(selected);
-                        setGraphic(checkBox);
-                    }
-                }
-            });
+            TableColumn<DashboardModel, Boolean> columnaSeleccion = getDashboardModelBooleanTableColumn();
 
             tablaAplicaciones.getColumns().addAll(columnaSeleccion, columnaNombre,
-                    columnaDescripcion, columnaVersion, columnaTamaño);
+                    columnaDescripcion, columnaVersion, columnaTamano);
         }
 
-        private void configurarFiltros() {
+    @NotNull
+    private TableColumn<DashboardModel, Boolean> getDashboardModelBooleanTableColumn() {
+        TableColumn<DashboardModel, Boolean> columnaSeleccion = new TableColumn<>("Instalar");
+        columnaSeleccion.setCellValueFactory(cellData -> cellData.getValue().seleccionadoProperty());
+        columnaSeleccion.setCellFactory(_ -> new TableCell<>() {
+            private final CheckBox checkBox = new CheckBox();
+
+            {
+                checkBox.setOnAction(_ -> {
+                    DashboardModel app = getTableView().getItems().get(getIndex());
+                    app.setSeleccionado(checkBox.isSelected());
+                    actualizarBotonInstalar();
+                });
+            }
+
+            @Override
+            protected void updateItem(Boolean selected, boolean empty) {
+                super.updateItem(selected, empty);
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    checkBox.setSelected(selected);
+                    setGraphic(checkBox);
+                }
+            }
+        });
+        return columnaSeleccion;
+    }
+
+    private void configurarFiltros() {
             // Configurar categorías
             List<String> categorias = todasLasAplicaciones.stream()
                     .map(DashboardModel::getCategoria)
                     .distinct()
-                    .collect(Collectors.toList());
+                    .toList();
 
             comboFiltroCategoria.getItems().addAll("Todas");
             comboFiltroCategoria.getItems().addAll(categorias);
@@ -182,9 +186,7 @@ public class DashboardController implements Initializable  {
 
                 // Filtro por categoría
                 if (filtroCategoria != null && !filtroCategoria.equals("Todas")) {
-                    if (!app.getCategoria().equals(filtroCategoria)) {
-                        return false;
-                    }
+                    return app.getCategoria().equals(filtroCategoria);
                 }
 
                 return true;
@@ -202,15 +204,15 @@ public class DashboardController implements Initializable  {
             try {
                 List<DashboardModel> appsSeleccionadas = todasLasAplicaciones.stream()
                         .filter(DashboardModel::isSeleccionado)
-                        .collect(Collectors.toList());
+                        .toList();
 
                 List<String> nombresSeleccionadas = appsSeleccionadas.stream()
                         .map(DashboardModel::getNombre)
-                        .collect(Collectors.toList());
+                        .toList();
 
                 List<String> RutasSeleccionadas = appsSeleccionadas.stream()
                         .map(DashboardModel::getUrlDescarga)
-                        .collect(Collectors.toList());
+                        .toList();
 
                 if (!nombresSeleccionadas.isEmpty()) {
                     for (String Nombre : nombresSeleccionadas) {
@@ -223,7 +225,7 @@ public class DashboardController implements Initializable  {
                                 boolean thunderbird = confirmacion("Desea Agregar Carpeta de perfil?");
 
                                 if (thunderbird) {
-                                    Fc.showFileChooser(botonInstalar);
+                                    Fc.directoryChooser(botonInstalar);
                                 }
                             }
                         }
@@ -296,12 +298,5 @@ public class DashboardController implements Initializable  {
         });
     }
 
-    public AppInstall getAppInstall() {
-        return appInstall;
-    }
-
-    public void setAppInstall(AppInstall appInstall) {
-        this.appInstall = appInstall;
-    }
 }
 

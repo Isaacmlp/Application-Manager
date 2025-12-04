@@ -2,6 +2,7 @@ package com.appmanager.appmanager.Utils;
 
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
 
@@ -19,12 +20,26 @@ public class FileChoose {
         fileChooser.setTitle("Seleccionar archivo");
 
         Window window = owner.getScene().getWindow();
-        File file = fileChooser.showOpenDialog(window);
+        File file = fileChooser.showOpenDialog(window) ;
         File destDir = new File("resources/Setups");
         if (file != null) {
             return copyDirectory(file,destDir);
         }
         return null;
+    }
+
+    public String directoryChooser(Node Owner) {
+        DirectoryChooser dc = new DirectoryChooser();
+        dc.setTitle("Seleccionar Carpeta");
+        Window window = Owner.getScene().getWindow();
+        File selectedDirectory = dc.showDialog(window);
+        if (selectedDirectory != null) {
+            System.out.println("El usuario seleccionó la carpeta: " + selectedDirectory.getAbsolutePath());
+            File destDir = new File("resources/Setups");
+            return copyDirectory(selectedDirectory,destDir);
+        } else {
+        return "Error al seleccionar carpeta";
+        }
     }
 
     // Guardar archivo en ruta elegida

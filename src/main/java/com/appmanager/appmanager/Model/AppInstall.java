@@ -33,12 +33,12 @@ public class AppInstall extends Component {
         }
         System.out.println(appName);
         if (appName.equals("SetupAll.exe")) {
-            System.out.println(setupsDir.resolve("CustomInstall.ini").toAbsolutePath().toString());
+            System.out.println(setupsDir.resolve("CustomInstall.ini").toAbsolutePath());
             ProcessBuilder pbAll = new ProcessBuilder(
                     installer.toAbsolutePath().toString(),
                     "/Silent",
                     "/NoDlg",
-                    "/IniFile="+ setupsDir.resolve("CustomInstall.ini").toAbsolutePath().toString()
+                    "/IniFile="+ setupsDir.resolve("CustomInstall.ini").toAbsolutePath()
             );
             pbAll.inheritIO();
             Process p = pbAll.start();
