@@ -2,7 +2,7 @@ package com.appmanager.appmanager.Controller;
 
 import com.appmanager.appmanager.Model.AppInstall;
 import com.appmanager.appmanager.Model.DashboardModel;
-import com.appmanager.appmanager.Model.ProxyConfig;
+import com.appmanager.appmanager.Utils.ProxyConfig;
 import com.appmanager.appmanager.Utils.FileChoose;
 import com.appmanager.appmanager.Utils.MetadataExtractor;
 import javafx.application.Platform;

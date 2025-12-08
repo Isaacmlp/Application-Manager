@@ -1,4 +1,4 @@
-package com.appmanager.appmanager.Model;
+package com.appmanager.appmanager.Utils;
 
 import java.io.IOException;
 import java.util.Arrays;
