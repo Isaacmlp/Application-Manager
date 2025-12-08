@@ -2,6 +2,7 @@ package com.appmanager.appmanager.Controller;
 
 import com.appmanager.appmanager.Model.AppInstall;
 import com.appmanager.appmanager.Model.DashboardModel;
+import com.appmanager.appmanager.Model.ProxyConfig;
 import com.appmanager.appmanager.Utils.FileChoose;
 import com.appmanager.appmanager.Utils.MetadataExtractor;
 import javafx.fxml.FXML;
@@ -15,11 +16,9 @@ import javafx.collections.transformation.FilteredList;
 import javafx.stage.Stage;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.event.ActionEvent;
 import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -35,8 +34,11 @@ public class DashboardController implements Initializable  {
         @FXML private Label etiquetaEstado;
         @FXML private Button botonInstalar;
         @FXML private VBox panelLateral;
+        @FXML private Button botonProxy;
+        public ProxyConfig proxyConfig;
 
-        public FileChoose Fc = new FileChoose();
+
+    public FileChoose Fc = new FileChoose();
 
 
         public List<DashboardModel> lista = new ArrayList<>();
@@ -298,5 +300,10 @@ public class DashboardController implements Initializable  {
         });
     }
 
+    public void cambiarProxy(javafx.event.ActionEvent actionEvent) {
+        proxyConfig = new ProxyConfig();
+        proxyConfig.ConfigurarProxy(0);
+        message("Proxy configurado correctamente.\n Proxy Actual: " + proxyConfig.getProxys()[0]);
+    }
 }
 

@@ -4,89 +4,111 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
 
-import com.appmanager.appmanager.Controller.DashboardController;
 import io.github.cdimascio.dotenv.Dotenv;
 
-
 public class ProxyConfig {
-    static Dotenv dotenv = Dotenv.load();
-    static DashboardController dc;
+    Dotenv dotenv = Dotenv.load();
 
+    // Ruta del registro entre comillas para evitar errores
+    String registryPath = "\"" + dotenv.get("REGISTRY_PATH",
+            "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings") + "\"";
 
-    static String[] Proxys = Objects.requireNonNull(dotenv.get("PROXYS")).split(";");
-    static String registryPath = dotenv.get("REGISTRY_PATH");
+    private final String[] Proxys = Objects.requireNonNull(dotenv.get("PROXYS")).split(";");
     // Excepciones que quieres aplicar (separadas por ;)
-    static String exceptions = "*.mired.local;localhost;192.168.*";
+    String defaultExceptions = "*.mired.local;localhost;192.168.*";
 
-
-    public ProxyConfig(String[] proxys, String registrypath) {
-        Proxys = proxys;
-        registryPath = registrypath;
+    public String[] getProxys() {
+        return Proxys;
     }
 
-    //Habilitar el Uso de Proxys en el Sistema Operativo
-    public static void ConfigurarProxy(int numberProxyInArray) {
+    // Habilitar el Uso de Proxys en el Sistema Operativo
+    public void ConfigurarProxy(int numberProxyInArray) {
+        ProcessBuilder setProxy = new ProcessBuilder(
+                Arrays.asList("reg", "add", registryPath,
+                        "/v", "ProxyServer",
+                        "/t", "REG_SZ",
+                        "/d", Proxys[numberProxyInArray],
+                        "/f"));
+
         ProcessBuilder enableProxy = new ProcessBuilder(
-                                     Arrays.asList(
-                                        "reg","add",registryPath,
-                                        "/v","ProxyEnable",
-                                        "/t","REG_DWORD",
-                                        "/d", "1",
-                                        "/f"
-                                     )
-        );
+                Arrays.asList("reg", "add", registryPath,
+                        "/v", "ProxyEnable",
+                        "/t", "REG_DWORD",
+                        "/d", "1",
+                        "/f"));
 
         ProcessBuilder disableAutoDetect = new ProcessBuilder(
-            Arrays.asList(
-                "reg","add",registryPath,
-                "/v","AutoDetect",
-                "/t","REG_DWORD",
-                "/d","0",
-                "/f"
-            )
-        );
+                Arrays.asList("reg", "add", registryPath,
+                        "/v", "AutoDetect",
+                        "/t", "REG_DWORD",
+                        "/d", "0",
+                        "/f"));
 
-        // Crear el ProcessBuilder para agregar/modificar ProxyOverride
+        // Solo escribir excepciones si no existen
         ProcessBuilder setProxyExceptions = new ProcessBuilder(
-                Arrays.asList(
-                        "reg","add",registryPath,
-                        "/v","ProxyOverride",
-                        "/t","REG_SZ",
-                        "/d",exceptions,
-                        "/f"
-                )
-        );
+                Arrays.asList("reg", "add", registryPath,
+                        "/v", "ProxyOverride",
+                        "/t", "REG_SZ",
+                        "/d", defaultExceptions,
+                        "/f"));
 
+        // Refresco silencioso
+        ProcessBuilder silentRefresh = new ProcessBuilder(
+                "RUNDLL32.EXE", "inetcpl.cpl,ClearMyTracksByProcess", "255");
 
-        ProcessBuilder setProxy = new ProcessBuilder(
-            Arrays.asList(
-                "reg","add",registryPath,
-                "/v" ,"ProxyServer",
-                "/d" ,Proxys[numberProxyInArray],
-                "/f"
-            )
-        );
-
-        try{
-            disableAutoDetect.inheritIO();
-            disableAutoDetect.start();
-
-            setProxyExceptions.start().waitFor();
-
-            dc.message("Ejecutando REG ADD para habilitar el proxy");
-            System.out.println("Ejecutando REG ADD para habilitar el proxy");
-            enableProxy.start().waitFor();
-
-            dc.message("Ejecutando REG ADD para establecer la direccion del proxy");
-            System.out.println("Ejecutando REG ADD para establecer la direccion del proxy");
+        try {
             setProxy.start().waitFor();
+            setProxyExceptions.start().waitFor();
+            enableProxy.start().waitFor();
+            disableAutoDetect.start().waitFor();
+            silentRefresh.start().waitFor();
 
-            //Notificar al Sistema operativo que el registro a cambiado
             System.out.println("Configuracion de Proxy Exitosa");
-            System.out.println("Proxy actual: " + Proxys[numberProxyInArray] );
+            System.out.println("Proxy actual: " + Proxys[numberProxyInArray]);
         } catch (IOException | InterruptedException e) {
-            System.out.println(e.getMessage());
+            System.out.println("Error configurando proxy: " + e.getMessage());
         }
     }
 
+    // 🔴 Nuevo método: Desactivar Proxy
+    public void DesactivarProxy() {
+        ProcessBuilder disableProxy = new ProcessBuilder(
+                Arrays.asList("reg", "add", registryPath,
+                        "/v", "ProxyEnable",
+                        "/t", "REG_DWORD",
+                        "/d", "0",
+                        "/f"));
+
+        ProcessBuilder clearProxyServer = new ProcessBuilder(
+                Arrays.asList("reg", "delete", registryPath,
+                        "/v", "ProxyServer",
+                        "/f"));
+
+        ProcessBuilder clearProxyOverride = new ProcessBuilder(
+                Arrays.asList("reg", "delete", registryPath,
+                        "/v", "ProxyOverride",
+                        "/f"));
+
+        ProcessBuilder resetAutoDetect = new ProcessBuilder(
+                Arrays.asList("reg", "add", registryPath,
+                        "/v", "AutoDetect",
+                        "/t", "REG_DWORD",
+                        "/d", "1",
+                        "/f"));
+
+        ProcessBuilder silentRefresh = new ProcessBuilder(
+                "RUNDLL32.EXE", "inetcpl.cpl,ClearMyTracksByProcess", "255");
+
+        try {
+            disableProxy.start().waitFor();
+            clearProxyServer.start().waitFor();
+            clearProxyOverride.start().waitFor();
+            resetAutoDetect.start().waitFor();
+            silentRefresh.start().waitFor();
+
+            System.out.println("Proxy desactivado correctamente");
+        } catch (IOException | InterruptedException e) {
+            System.out.println("Error desactivando proxy: " + e.getMessage());
+        }
+    }
 }

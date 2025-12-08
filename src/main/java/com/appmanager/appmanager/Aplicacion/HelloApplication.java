@@ -9,13 +9,8 @@ import javafx.stage.Stage;
 import javafx.scene.image.Image;
 import javafx.stage.StageStyle;
 
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Objects;
-
 
 public class HelloApplication extends Application {
     private double xOffset = 0;
@@ -50,8 +45,11 @@ public class HelloApplication extends Application {
         primaryStage.initStyle(StageStyle.TRANSPARENT); // Para diseño personalizado
         primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/Image/img.png"))));
         primaryStage.setScene(scene);
+
+        // 🔴 Pantalla completa
+        primaryStage.setMaximized(true);     // ocupa toda la pantalla
+        // primaryStage.setFullScreen(true); // si quieres modo fullscreen real
+
         primaryStage.show();
     }
-
-
 }
