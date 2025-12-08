@@ -11,7 +11,7 @@ public class DNSConfig {
     // Cargar variables de entorno
     private static final Dotenv dontenv = Dotenv.load();
 
-    // 🔒 Nombre fijo de la interfaz
+    // Nombre fijo de la interfaz
     private static final String DEFAULT_INTERFACE = dontenv.get("NETWORK_INTERFACE_NAME");
 
     // Cargar DNS desde las Variables de Entorno
@@ -44,7 +44,7 @@ public class DNSConfig {
     }
 
     /**
-     * 🔴 Desactiva DNS manuales en Ethernet (equivalente a resetDNS)
+     * Desactiva DNS manuales en Ethernet (equivalente a resetDNS)
      */
     public boolean disableDNS() {
         System.out.println("Desactivando DNS manuales en la interfaz: " + DEFAULT_INTERFACE);
