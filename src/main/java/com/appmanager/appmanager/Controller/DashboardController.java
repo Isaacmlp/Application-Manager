@@ -5,8 +5,11 @@ import com.appmanager.appmanager.Model.DashboardModel;
 import com.appmanager.appmanager.Model.ProxyConfig;
 import com.appmanager.appmanager.Utils.FileChoose;
 import com.appmanager.appmanager.Utils.MetadataExtractor;
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
@@ -16,15 +19,16 @@ import javafx.collections.transformation.FilteredList;
 import javafx.stage.Stage;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.File;
 import java.net.*;
 import java.nio.file.Path;
+import javafx.stage.Modality;
 import java.nio.file.Paths;
 import java.util.*;
 
-
-public class DashboardController implements Initializable  {
+public class DashboardController implements Initializable , KeyListener {
 
         @FXML private BorderPane mainBorderPane;
         @FXML private TableView<DashboardModel> tablaAplicaciones;
@@ -35,14 +39,16 @@ public class DashboardController implements Initializable  {
         @FXML private Button botonInstalar;
         @FXML private VBox panelLateral;
         @FXML private Button botonProxy;
-        public ProxyConfig proxyConfig;
+        @FXML private Button botonDNS;
+
+        public ProxyConfig proxyConfig = new ProxyConfig();;
 
 
     public FileChoose Fc = new FileChoose();
 
-
+        private int proxyNumer;
         public List<DashboardModel> lista = new ArrayList<>();
-        private AppInstall appInstall = new AppInstall();
+        private final AppInstall appInstall = new AppInstall();
         private ObservableList<DashboardModel> todasLasAplicaciones;
         private FilteredList<DashboardModel> aplicacionesFiltradas;
 
@@ -288,7 +294,7 @@ public class DashboardController implements Initializable  {
     }
 
     public void message(String mensaje) {
-        javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Información");
             alert.setHeaderText(null);
@@ -300,10 +306,129 @@ public class DashboardController implements Initializable  {
         });
     }
 
-    public void cambiarProxy(javafx.event.ActionEvent actionEvent) {
-        proxyConfig = new ProxyConfig();
-        proxyConfig.ConfigurarProxy(0);
-        message("Proxy configurado correctamente.\n Proxy Actual: " + proxyConfig.getProxys()[0]);
+    public void cambiarProxy(ActionEvent actionEvent) {
+
+        int proxy = elegirProxy(proxyConfig.getProxys());
+
+        if (proxy == proxyConfig.getProxys().length){
+            message(proxyConfig.DesactivarProxy());
+            return;
+        }
+
+        proxyConfig.ConfigurarProxy(proxy);
+        message("Proxy configurado correctamente.\n Proxy Actual: " + proxyConfig.getProxys()[proxy]);
+    }
+
+    public void ConfigurarDNS(ActionEvent actionEvent) {
+        message("En matenimiento...");
+    }
+
+    public Integer elegirProxy(String[] proxys) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("Elegir Proxy");
+
+        // Construir mensaje con las opciones
+        StringBuilder mensajeBuilder = new StringBuilder("Proxys disponibles:\n\n");
+        int index = 0;
+        int windowHeight = 300 + ((proxys != null ? proxys.length : 0) * 20); // Ajustar altura según número de proxys
+        if (proxys != null) {
+            for (String proxy : proxys) {
+                mensajeBuilder.append("Opcion ").append(index).append(" : ").append(proxy).append("\n");
+                index++;
+            }
+        }
+        mensajeBuilder.append("Opcion ").append(index).append(" : ").append("Desactivar Proxy\n");
+
+        Label label = new Label(mensajeBuilder.toString());
+        label.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+        TextField textField = new TextField();
+        textField.setPromptText("Escribe el número de la opción...");
+        textField.setStyle("-fx-font-size: 13px; -fx-padding: 8;");
+
+        Button okButton = new Button("Aceptar");
+        okButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
+
+        Button cancelButton = new Button("Cancelar");
+        cancelButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
+
+        final Integer[] result = {null};
+
+        okButton.setOnAction(e -> {
+            try {
+                int valor = Integer.parseInt(textField.getText().trim());
+                if (valor >= 0 && valor < (proxys != null ? proxys.length + 1 : 1)) {
+                    result[0] = valor;
+                    dialog.close();
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Número fuera de rango.");
+                    alert.showAndWait();
+                }
+            } catch (NumberFormatException ex) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Por favor ingresa un número válido.");
+                alert.showAndWait();
+            }
+        });
+
+        cancelButton.setOnAction(e -> {
+            result[0] = null;
+            dialog.close();
+        });
+
+        VBox botones = new VBox(10, okButton, cancelButton);
+        botones.setStyle("-fx-alignment: center;");
+
+        VBox layout = new VBox(20, label, textField, botones);
+        layout.setStyle("-fx-padding: 30; -fx-background-color: #f0f0f0; -fx-border-color: #cccccc; -fx-border-radius: 8; -fx-background-radius: 8;");
+        layout.setPrefSize(400, windowHeight); // 🔎 Ventana más grande
+
+        Scene scene = new Scene(layout);
+        // Añadir key listener JavaFX: Enter -> aceptar, Escape -> cancelar
+        scene.setOnKeyPressed(evt -> {
+            javafx.scene.input.KeyCode code = evt.getCode();
+            if (code == javafx.scene.input.KeyCode.ENTER) {
+                okButton.fire();
+            } else if (code == javafx.scene.input.KeyCode.ESCAPE) {
+                cancelButton.fire();
+            }
+        });
+
+        dialog.setScene(scene);
+
+        // Dar foco al campo de texto al mostrar el diálogo
+        dialog.showingProperty().addListener((obs, wasShowing, isNowShowing) -> {
+            if (isNowShowing) {
+                javafx.application.Platform.runLater(textField::requestFocus);
+            }
+        });
+
+        dialog.showAndWait();
+
+        proxyNumer = (result[0] != null) ? result[0] : -1;
+        return result[0];
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        if (e.getKeyChar() == KeyEvent.VK_ENTER) {
+            if (proxyNumer == proxyConfig.getProxys().length){
+                message(proxyConfig.DesactivarProxy());
+                return;
+            }
+            proxyConfig.ConfigurarProxy(proxyNumer);
+            message("Proxy configurado correctamente.\n Proxy Actual: " + proxyConfig.getProxys()[proxyNumer]);
+        }
     }
 }
 

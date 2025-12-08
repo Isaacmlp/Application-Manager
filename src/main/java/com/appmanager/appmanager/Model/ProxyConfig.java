@@ -71,7 +71,7 @@ public class ProxyConfig {
     }
 
     // 🔴 Nuevo método: Desactivar Proxy
-    public void DesactivarProxy() {
+    public String DesactivarProxy() {
         ProcessBuilder disableProxy = new ProcessBuilder(
                 Arrays.asList("reg", "add", registryPath,
                         "/v", "ProxyEnable",
@@ -107,8 +107,10 @@ public class ProxyConfig {
             silentRefresh.start().waitFor();
 
             System.out.println("Proxy desactivado correctamente");
+            return "Proxy desactivado correctamente";
         } catch (IOException | InterruptedException e) {
             System.out.println("Error desactivando proxy: " + e.getMessage());
+            return "Error desactivando proxy: " + e.getMessage();
         }
     }
 }
