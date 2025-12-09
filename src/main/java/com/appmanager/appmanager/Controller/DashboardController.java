@@ -55,10 +55,10 @@ DashboardController implements Initializable , KeyListener {
         private FilteredList<DashboardModel> aplicacionesFiltradas;
 
         ClassLoader classLoader = MetadataExtractor.class.getClassLoader();
-        URL resourcesUrl = Objects.requireNonNull(classLoader.getResource("Setups")).toURI().toURL();
+        //URL resourcesUrl = Objects.requireNonNull(classLoader.getResource("Setups")).toURI().toURL();
 
-        URI uri = resourcesUrl.toURI(); // decodifica correctamente
-        Path path = Paths.get(uri); // convierte a ruta válida
+        //URI uri = resourcesUrl.toURI(); // decodifica correctamente
+        Path path = Paths.get(System.getProperty("user.dir"), "Setups"); // convierte a ruta válida
         File carpeta = path.toFile();
 
     public DashboardController() throws URISyntaxException, MalformedURLException {

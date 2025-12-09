@@ -22,8 +22,6 @@ public class HelloApplication extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
 
-        System.out.println(Objects.requireNonNull(getClass().getResource("/Setups/")).toURI());
-
         FXMLLoader loader = new FXMLLoader(Objects.requireNonNull(getClass().getResource("/View/DashboardView.fxml")));
         Parent root = loader.load();
 
