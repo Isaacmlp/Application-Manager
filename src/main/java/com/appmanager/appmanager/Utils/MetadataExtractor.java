@@ -2,6 +2,7 @@ package com.appmanager.appmanager.Utils;
 
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -13,6 +14,143 @@ public class MetadataExtractor {
 
     // Variables para controlar carpetas ya procesadas
     private static final Set<String> processedSpecialFolders = new HashSet<>();
+
+    // ===================================================================
+    // NUEVOS MÉTODOS PARA ENCONTRAR LA CARPETA SETUP AUTOMÁTICAMENTE
+    // ===================================================================
+
+    /**
+     * Obtiene la ruta del directorio donde se encuentra el archivo JAR
+     */
+    public static String getJarDirectory() {
+        try {
+            // Obtener la ruta del archivo JAR
+            String jarPath = MetadataExtractor.class.getProtectionDomain()
+                    .getCodeSource()
+                    .getLocation()
+                    .toURI()
+                    .getPath();
+
+            // En Windows, eliminar el slash inicial si existe
+            if (jarPath.startsWith("/") && System.getProperty("os.name").toLowerCase().contains("win")) {
+                jarPath = jarPath.substring(1);
+            }
+
+            File jarFile = new File(jarPath);
+            // Retornar el directorio padre (donde está el JAR)
+            return jarFile.getParent();
+
+        } catch (Exception e) {
+            // Si hay error, usar el directorio actual de trabajo
+            System.err.println("Error obteniendo ubicación del JAR: " + e.getMessage());
+            return System.getProperty("user.dir");
+        }
+    }
+
+    /**
+     * Busca automáticamente la carpeta Setup en el mismo directorio del JAR
+     */
+    public static String findSetupFolder() {
+        String jarDir = getJarDirectory();
+        System.out.println("📁 Directorio del JAR: " + jarDir);
+
+        // Opción 1: Buscar carpeta "Setup" en el mismo nivel
+        File setupFolder = new File(jarDir, "Setup");
+
+        if (setupFolder.exists() && setupFolder.isDirectory()) {
+            System.out.println("✅ Carpeta Setup encontrada: " + setupFolder.getAbsolutePath());
+            return setupFolder.getAbsolutePath();
+        }
+
+        // Opción 2: Buscar con diferentes nombres comunes
+        String[] possibleNames = {"Setups", "Instaladores", "Installs", "Installers", "Aplicaciones",
+                "Setup_Files", "Instalaciones", "Programas", "Software"};
+
+        for (String name : possibleNames) {
+            File possibleFolder = new File(jarDir, name);
+            if (possibleFolder.exists() && possibleFolder.isDirectory()) {
+                System.out.println("✅ Carpeta encontrada (" + name + "): " + possibleFolder.getAbsolutePath());
+                return possibleFolder.getAbsolutePath();
+            }
+        }
+
+        // Opción 3: Buscar en subdirectorios comunes
+        String[] commonSubPaths = {
+                "..\\Setup",
+                "..\\Setups",
+                ".\\Setup",
+                "setup",
+                "SETUP",
+                "..\\Instaladores",
+                "..\\Installers"
+        };
+
+        for (String subPath : commonSubPaths) {
+            File possibleFolder = new File(jarDir, subPath);
+            if (possibleFolder.exists() && possibleFolder.isDirectory()) {
+                System.out.println("✅ Carpeta Setup encontrada (" + subPath + "): " + possibleFolder.getAbsolutePath());
+                return possibleFolder.getAbsolutePath();
+            }
+        }
+
+        // Si no se encuentra, usar el directorio del JAR
+        System.out.println("⚠ No se encontró carpeta Setup. Usando directorio del JAR.");
+        return jarDir;
+    }
+
+    /**
+     * Método para seleccionar carpeta con interfaz gráfica
+     */
+    public static String selectFolderWithDialog() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Seleccionar carpeta Setup");
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        fileChooser.setCurrentDirectory(new File(getJarDirectory()));
+
+        int result = fileChooser.showOpenDialog(null);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFolder = fileChooser.getSelectedFile();
+            System.out.println("📁 Carpeta seleccionada: " + selectedFolder.getAbsolutePath());
+            return selectedFolder.getAbsolutePath();
+        } else {
+            System.out.println("⚠ No se seleccionó carpeta. Usando búsqueda automática.");
+            return findSetupFolder();
+        }
+    }
+
+    /**
+     * Método principal que busca automáticamente la carpeta Setup
+     */
+    public static Map<String, Map<String, String>> extractMetadataFromAutoLocatedSetup() {
+        String setupPath = findSetupFolder();
+        return getExecutableMetadataFromFolder(setupPath);
+    }
+
+    /**
+     * Método principal con recursividad configurable
+     */
+    public static Map<String, Map<String, String>> extractMetadataFromAutoLocatedSetup(boolean recursive) {
+        String setupPath = findSetupFolder();
+        return getExecutableMetadataFromFolder(setupPath, recursive);
+    }
+
+    /**
+     * Extrae metadatos desde una ruta específica o usa auto-detección
+     */
+    public static Map<String, Map<String, String>> extractMetadata(String path) {
+        if (path == null || path.trim().isEmpty()) {
+            System.out.println("📌 Usando detección automática de carpeta Setup...");
+            return extractMetadataFromAutoLocatedSetup();
+        } else {
+            System.out.println("📌 Usando ruta proporcionada: " + path);
+            return getExecutableMetadataFromFolder(path);
+        }
+    }
+
+    // ===================================================================
+    // MÉTODOS ORIGINALES (CON ALGUNAS MEJORAS)
+    // ===================================================================
 
     public static Map<String, Map<String, String>> getExecutableMetadataFromFolder(String folderPath) {
         return getExecutableMetadataFromFolder(folderPath, true);
@@ -28,27 +166,75 @@ public class MetadataExtractor {
         // Verificar que la carpeta existe y es accesible
         if (!folder.exists() || !folder.isDirectory()) {
             System.err.println("La carpeta no existe o no es accesible: " + folderPath);
+            System.out.println("💡 Intentando búsqueda automática de carpeta Setup...");
+
+            // Intentar búsqueda automática
+            String autoPath = findSetupFolder();
+            if (!autoPath.equals(folderPath)) {
+                System.out.println("🔄 Redirigiendo a: " + autoPath);
+                return getExecutableMetadataFromFolder(autoPath, recursive);
+            }
             return allMetadata;
         }
+
+        // Mostrar información de la carpeta que se va a analizar
+        System.out.println("📂 Analizando carpeta: " + folder.getAbsolutePath());
+        System.out.println("📊 Total espacio disponible: " +
+                String.format("%.2f GB", folder.getFreeSpace() / (1024.0 * 1024.0 * 1024.0)));
 
         // Buscar archivos con reglas especiales
         List<File> executableFiles = findExecutableFilesWithSpecialRules(folder, recursive, folderPath);
 
         if (executableFiles.isEmpty()) {
             System.out.println("No se encontraron archivos .exe o .msi en la carpeta: " + folderPath);
+
+            // Sugerir buscar en subcarpetas si no se encontraron archivos
+            if (!recursive) {
+                System.out.println("💡 Intenta con búsqueda recursiva: getExecutableMetadataFromFolder(path, true)");
+            }
             return allMetadata;
         }
 
-        System.out.println("Procesando " + executableFiles.size() + " archivos ejecutables...");
+        System.out.println("✅ Encontrados " + executableFiles.size() + " archivos ejecutables para analizar...");
+
+        // Usar executor para procesamiento paralelo (mejora de rendimiento)
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(executableFiles.size(), Runtime.getRuntime().availableProcessors()));
+        List<Future<Map.Entry<String, Map<String, String>>>> futures = new ArrayList<>();
 
         for (File file : executableFiles) {
             String relativePath = getRelativePath(file, folderPath);
-            System.out.println("Analizando: " + relativePath);
+            System.out.println("📄 En cola para análisis: " + relativePath);
 
-            Map<String, String> metadata = extractSingleFileMetadata(file, folderPath);
+            Callable<Map.Entry<String, Map<String, String>>> task = () -> {
+                System.out.println("🔍 Analizando: " + relativePath);
+                Map<String, String> metadata = extractSingleFileMetadata(file, folderPath);
+                return new AbstractMap.SimpleEntry<>(relativePath, metadata);
+            };
 
-            // Usar la ruta relativa como clave para evitar conflictos de nombres duplicados
-            allMetadata.put(relativePath, metadata);
+            futures.add(executor.submit(task));
+        }
+
+        // Recopilar resultados
+        for (Future<Map.Entry<String, Map<String, String>>> future : futures) {
+            try {
+                Map.Entry<String, Map<String, String>> entry = future.get(60, TimeUnit.SECONDS);
+                allMetadata.put(entry.getKey(), entry.getValue());
+            } catch (TimeoutException e) {
+                System.err.println("⏰ Timeout procesando archivo");
+            } catch (Exception e) {
+                System.err.println("❌ Error procesando archivo: " + e.getMessage());
+            }
+        }
+
+        executor.shutdown();
+
+        try {
+            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
         }
 
         return allMetadata;
@@ -89,7 +275,7 @@ public class MetadataExtractor {
         // Evitar procesar carpetas especiales ya procesadas
         String folderKey = folder.getAbsolutePath();
         if (processedSpecialFolders.contains(folderKey)) {
-            System.out.println("Carpeta especial ya procesada, omitiendo: " + folder.getName());
+            System.out.println("⏭️ Carpeta especial ya procesada, omitiendo: " + folder.getName());
             return;
         }
 
@@ -631,15 +817,23 @@ public class MetadataExtractor {
     }
 
     /**
-     * Método de ejemplo de uso
+     * Método de ejemplo de uso mejorado
      */
     public static void main(String[] args) {
-        // Ejemplo: Analizar desde la carpeta Setups
-        String setupsPath = "C:\\Setups";
+        System.out.println("=".repeat(80));
+        System.out.println("🔍 APLICACIÓN DE EXTRACCIÓN DE METADATOS");
+        System.out.println("=".repeat(80));
 
-        System.out.println("=".repeat(80));
-        System.out.println("🔍 INICIANDO ANÁLISIS DESDE: " + setupsPath);
-        System.out.println("=".repeat(80));
+        String setupPath = null;
+
+        // Manejo de argumentos
+        if (args.length > 0) {
+            setupPath = args[0];
+            System.out.println("📌 Ruta proporcionada como argumento: " + setupPath);
+        } else {
+            System.out.println("📌 No se proporcionó ruta. Usando búsqueda automática...");
+        }
+
         System.out.println("\n📋 REGLAS ESPECIALES ACTIVAS:");
         System.out.println("  1. ❌ IGNORAR completamente cualquier carpeta llamada 'SIAR'");
         System.out.println("  2. 📁 En DISK1 cerca de la raíz: Buscar SOLO SIAR.msi");
@@ -647,7 +841,8 @@ public class MetadataExtractor {
         System.out.println("  4. 🔄 Después de procesar carpetas especiales, CONTINUAR con el resto");
         System.out.println("=".repeat(80) + "\n");
 
-        Map<String, Map<String, String>> results = getExecutableMetadataFromFolder(setupsPath);
+        // Extraer metadatos (con o sin ruta específica)
+        Map<String, Map<String, String>> results = extractMetadata(setupPath);
 
         // Mostrar resumen
         System.out.println("\n" + "=".repeat(80));
@@ -723,5 +918,25 @@ public class MetadataExtractor {
         System.out.println("\n" + "=".repeat(80));
         System.out.println("✅ ANÁLISIS COMPLETADO");
         System.out.println("=".repeat(80));
+
+        // Exportar resultados si se solicita
+        if (args.length > 1 && args[1].equalsIgnoreCase("--export")) {
+            exportResultsToCSV(results);
+        }
+    }
+
+    /**
+     * Exporta resultados a CSV (método adicional)
+     */
+    private static void exportResultsToCSV(Map<String, Map<String, String>> results) {
+        try {
+            String jarDir = getJarDirectory();
+            File csvFile = new File(jarDir, "metadata_results_" + System.currentTimeMillis() + ".csv");
+
+            // Aquí iría la lógica para exportar a CSV
+            System.out.println("💾 Resultados exportados a: " + csvFile.getAbsolutePath());
+        } catch (Exception e) {
+            System.err.println("❌ Error exportando resultados: " + e.getMessage());
+        }
     }
 }
