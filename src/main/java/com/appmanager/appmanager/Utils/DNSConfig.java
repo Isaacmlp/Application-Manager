@@ -12,10 +12,14 @@ public class DNSConfig {
     private static final Dotenv dontenv = Dotenv.load();
 
     // Nombre fijo de la interfaz
-    private static final String DEFAULT_INTERFACE = dontenv.get("NETWORK_INTERFACE_NAME");
+    private static final String DEFAULT_INTERFACE = dontenv.get("DEFAULT_INTERFACE");
+
+    public String[] getDNS() {
+        return DNS;
+    }
 
     // Cargar DNS desde las Variables de Entorno
-    private static final String[] DNS = Objects.requireNonNull(dontenv.get("DNS")).split(";");
+    private final String[] DNS = Objects.requireNonNull(dontenv.get("DNS")).split(";");
 
     /**
      * Configura el DNS primario en la interfaz Ethernet
@@ -23,8 +27,8 @@ public class DNSConfig {
      * @return true si el comando se ejecutó correctamente
      */
     public boolean setPrimaryDNS(String primaryDNS) {
-        return runCommand("netsh interface ip set dns name=\"" + DEFAULT_INTERFACE + "\" static " + primaryDNS);
-    }
+        System.out.println("netsh interface ip set dns name=" + DEFAULT_INTERFACE + " static " + primaryDNS);
+        return runCommand("netsh interface ip set dns name=" + DEFAULT_INTERFACE + " static " + primaryDNS);    }
 
     /**
      * Agrega un DNS secundario a la interfaz Ethernet

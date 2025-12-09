@@ -2,6 +2,7 @@ package com.appmanager.appmanager.Controller;
 
 import com.appmanager.appmanager.Model.AppInstall;
 import com.appmanager.appmanager.Model.DashboardModel;
+import com.appmanager.appmanager.Utils.DNSConfig;
 import com.appmanager.appmanager.Utils.ProxyConfig;
 import com.appmanager.appmanager.Utils.FileChoose;
 import com.appmanager.appmanager.Utils.MetadataExtractor;
@@ -42,9 +43,9 @@ public class DashboardController implements Initializable , KeyListener {
         @FXML private Button botonDNS;
 
         public ProxyConfig proxyConfig = new ProxyConfig();;
+        public DNSConfig dnsConfig = new DNSConfig();
 
-
-    public FileChoose Fc = new FileChoose();
+        public FileChoose Fc = new FileChoose();
 
         private int proxyNumer;
         public List<DashboardModel> lista = new ArrayList<>();
@@ -320,7 +321,8 @@ public class DashboardController implements Initializable , KeyListener {
     }
 
     public void ConfigurarDNS(ActionEvent actionEvent) {
-        message("En matenimiento...");
+
+        System.out.println(dnsConfig.setPrimaryDNS(dnsConfig.getDNS()[0]));
     }
 
     public Integer elegirProxy(String[] proxys) {
