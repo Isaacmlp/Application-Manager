@@ -322,7 +322,7 @@ public class DashboardController implements Initializable , KeyListener {
 
     public void ConfigurarDNS(ActionEvent actionEvent) {
         int dns = selectDNS(dnsConfig.getDNS());
-        if (dns == dnsConfig.getDNS().length + 1){
+        if (dns == dnsConfig.getDNS().length){
             message(dnsConfig.disableDNS() ? "DNS desactivados correctamente." : "Error al desactivar DNS.");
             return;
         }
