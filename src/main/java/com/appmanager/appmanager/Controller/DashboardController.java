@@ -29,7 +29,8 @@ import javafx.stage.Modality;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class DashboardController implements Initializable , KeyListener {
+public class
+DashboardController implements Initializable , KeyListener {
 
         @FXML private BorderPane mainBorderPane;
         @FXML private TableView<DashboardModel> tablaAplicaciones;
