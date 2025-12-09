@@ -321,8 +321,103 @@ public class DashboardController implements Initializable , KeyListener {
     }
 
     public void ConfigurarDNS(ActionEvent actionEvent) {
+        int dns = selectDNS(dnsConfig.getDNS());
+        if (dns == dnsConfig.getDNS().length + 1){
+            message(dnsConfig.disableDNS() ? "DNS desactivados correctamente." : "Error al desactivar DNS.");
+            return;
+        }
+        boolean exito = dnsConfig.setPrimaryDNS(dnsConfig.getDNS()[dns]);
+        if (exito) {
+            message("DNS configurado correctamente.\n DNS Actual: " + dnsConfig.getDNS()[dns]);
+        } else {
+            message("Error al configurar DNS.");
+        }
+    }
 
-        System.out.println(dnsConfig.setPrimaryDNS(dnsConfig.getDNS()[0]));
+    public Integer selectDNS(String[] DNS) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.setTitle("Configurar DNS");
+
+        // Construir mensaje con las opciones
+        StringBuilder mensajeBuilder = new StringBuilder("Proxys disponibles:\n\n");
+        int index = 0;
+        int windowHeight = 300 + ((DNS != null ? DNS.length : 0) * 20); // Ajustar altura según número de proxys
+        if (DNS != null) {
+            for (String proxy : DNS) {
+                mensajeBuilder.append("Opcion ").append(index).append(" : ").append(proxy).append("\n");
+                index++;
+            }
+        }
+        mensajeBuilder.append("Opcion ").append(index).append(" : ").append("Desactivar Proxy\n");
+
+        Label label = new Label(mensajeBuilder.toString());
+        label.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+        TextField textField = new TextField();
+        textField.setPromptText("Escribe el número de la opción...");
+        textField.setStyle("-fx-font-size: 13px; -fx-padding: 8;");
+
+        Button okButton = new Button("Aceptar");
+        okButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
+
+        Button cancelButton = new Button("Cancelar");
+        cancelButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
+
+        final Integer[] result = {null};
+
+        okButton.setOnAction(e -> {
+            try {
+                int valor = Integer.parseInt(textField.getText().trim());
+                if (valor >= 0 && valor < (DNS != null ? DNS.length + 1 : 1)) {
+                    result[0] = valor;
+                    dialog.close();
+                } else {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Número fuera de rango.");
+                    alert.showAndWait();
+                }
+            } catch (NumberFormatException ex) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Por favor ingresa un número válido.");
+                alert.showAndWait();
+            }
+        });
+
+        cancelButton.setOnAction(e -> {
+            result[0] = null;
+            dialog.close();
+        });
+
+        VBox botones = new VBox(10, okButton, cancelButton);
+        botones.setStyle("-fx-alignment: center;");
+
+        VBox layout = new VBox(20, label, textField, botones);
+        layout.setStyle("-fx-padding: 30; -fx-background-color: #f0f0f0; -fx-border-color: #cccccc; -fx-border-radius: 8; -fx-background-radius: 8;");
+        layout.setPrefSize(400, windowHeight); // 🔎 Ventana más grande
+
+        Scene scene = new Scene(layout);
+        // Añadir key listener JavaFX: Enter -> aceptar, Escape -> cancelar
+        scene.setOnKeyPressed(evt -> {
+            javafx.scene.input.KeyCode code = evt.getCode();
+            if (code == javafx.scene.input.KeyCode.ENTER) {
+                okButton.fire();
+            } else if (code == javafx.scene.input.KeyCode.ESCAPE) {
+                cancelButton.fire();
+            }
+        });
+
+        dialog.setScene(scene);
+
+        // Dar foco al campo de texto al mostrar el diálogo
+        dialog.showingProperty().addListener((obs, wasShowing, isNowShowing) -> {
+            if (isNowShowing) {
+                javafx.application.Platform.runLater(textField::requestFocus);
+            }
+        });
+
+        dialog.showAndWait();
+
+        proxyNumer = (result[0] != null) ? result[0] : -1;
+        return result[0];
     }
 
     public Integer elegirProxy(String[] proxys) {
