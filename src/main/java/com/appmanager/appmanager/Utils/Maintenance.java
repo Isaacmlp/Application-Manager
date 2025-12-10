@@ -3,6 +3,7 @@ package com.appmanager.appmanager.Utils;
 import javafx.stage.FileChooser;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -186,8 +187,9 @@ public class Maintenance {
             Path targetDir = Paths.get(SETUPS_DIR, selectedDir.getName());
 
             Files.walkFileTree(sourceDir, new SimpleFileVisitor<Path>() {
+                @NotNull
                 @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                public FileVisitResult preVisitDirectory(@NotNull Path dir, @NotNull BasicFileAttributes attrs) throws IOException {
                     Path targetPath = targetDir.resolve(sourceDir.relativize(dir));
                     if (!Files.exists(targetPath)) {
                         Files.createDirectories(targetPath);
@@ -195,8 +197,9 @@ public class Maintenance {
                     return FileVisitResult.CONTINUE;
                 }
 
+                @NotNull
                 @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                public FileVisitResult visitFile(@NotNull Path file, @NotNull BasicFileAttributes attrs) throws IOException {
                     Path targetPath = targetDir.resolve(sourceDir.relativize(file));
                     Files.copy(file, targetPath, StandardCopyOption.REPLACE_EXISTING);
                     return FileVisitResult.CONTINUE;
