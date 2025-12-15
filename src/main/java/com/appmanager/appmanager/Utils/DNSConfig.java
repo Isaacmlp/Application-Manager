@@ -1,7 +1,9 @@
 package com.appmanager.appmanager.Utils;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.List;
 import java.util.Objects;
 
 import io.github.cdimascio.dotenv.Dotenv;
@@ -9,17 +11,38 @@ import io.github.cdimascio.dotenv.Dotenv;
 public class DNSConfig {
 
     // Cargar variables de entorno
-    private static final Dotenv dontenv = Dotenv.load();
+    Dotenv dontenv = Dotenv.load();
 
     // Nombre fijo de la interfaz
-    private static final String DEFAULT_INTERFACE = dontenv.get("DEFAULT_INTERFACE");
+    String DEFAULT_INTERFACE = dontenv.get("DEFAULT_INTERFACE");
 
     public String[] getDNS() {
         return DNS;
     }
 
     // Cargar DNS desde las Variables de Entorno
-    private final String[] DNS = Objects.requireNonNull(dontenv.get("DNS")).split(";");
+    String[] DNS = Objects.requireNonNull(dontenv.get("DNS")).split(";");
+
+    public String[] updateDNS() {
+        try {
+            List<String> dnsList = Maintenance.getDNSList();
+            this.DNS = dnsList.toArray(new String[0]);
+            return this.DNS;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return this.DNS != null ? this.DNS : new String[0];
+        }
+    }
+
+    // Método para establecer DNS
+    public void setDNS(String[] dns) {
+        this.DNS = dns;
+    }
+
+    // Método para obtener array (si no existe)
+    public String[] getDNSArray() {
+        return this.DNS != null ? this.DNS : new String[0];
+    }
 
     /**
      * Configura el DNS primario en la interfaz Ethernet

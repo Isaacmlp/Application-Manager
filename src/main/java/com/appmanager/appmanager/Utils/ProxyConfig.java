@@ -2,6 +2,7 @@ package com.appmanager.appmanager.Utils;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import io.github.cdimascio.dotenv.Dotenv;
@@ -13,12 +14,34 @@ public class ProxyConfig {
     String registryPath = "\"" + dotenv.get("REGISTRY_PATH",
             "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings") + "\"";
 
-    private final String[] Proxys = Objects.requireNonNull(dotenv.get("PROXYS")).split(";");
+    String[] Proxys = Objects.requireNonNull(dotenv.get("PROXYS")).split(";");
     // Excepciones que quieres aplicar (separadas por ;)
     String defaultExceptions = "*.mired.local;localhost;192.168.*";
 
     public String[] getProxys() {
         return Proxys;
+    }
+
+    // Método para actualizar desde archivo .env
+    public String[] updateProxys() {
+        try {
+            List<String> proxyList = Maintenance.getProxies();
+            this.Proxys = proxyList.toArray(new String[0]);
+            return this.Proxys;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return this.Proxys != null ? this.Proxys : new String[0];
+        }
+    }
+
+    // Método para establecer proxys
+    public void setProxys(String[] proxys) {
+        this.Proxys = proxys;
+    }
+
+    // Método para obtener array (si no existe)
+    public String[] getProxysArray() {
+        return this.Proxys != null ? this.Proxys : new String[0];
     }
 
     // Habilitar el Uso de Proxys en el Sistema Operativo
@@ -113,4 +136,5 @@ public class ProxyConfig {
             return "Error desactivando proxy: " + e.getMessage();
         }
     }
+
 }

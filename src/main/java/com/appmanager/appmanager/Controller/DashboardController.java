@@ -2,17 +2,16 @@ package com.appmanager.appmanager.Controller;
 
 import com.appmanager.appmanager.Model.AppInstall;
 import com.appmanager.appmanager.Model.DashboardModel;
-import com.appmanager.appmanager.Utils.DNSConfig;
-import com.appmanager.appmanager.Utils.ProxyConfig;
-import com.appmanager.appmanager.Utils.FileChoose;
-import com.appmanager.appmanager.Utils.MetadataExtractor;
+import com.appmanager.appmanager.Utils.*;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -23,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
+import java.io.IOException;
 import java.net.*;
 import java.nio.file.Path;
 import javafx.stage.Modality;
@@ -35,18 +35,21 @@ DashboardController implements Initializable , KeyListener {
         @FXML private BorderPane mainBorderPane;
         @FXML private TableView<DashboardModel> tablaAplicaciones;
         @FXML private TextField campoBusqueda;
-        @FXML private ComboBox<String> comboFiltroCategoria;
         @FXML private ProgressBar barraProgreso;
         @FXML private Label etiquetaEstado;
         @FXML private Button botonInstalar;
+        @FXML private Button botonMantenimiento;
         @FXML private VBox panelLateral;
         @FXML private Button botonProxy;
         @FXML private Button botonDNS;
 
         public ProxyConfig proxyConfig = new ProxyConfig();;
         public DNSConfig dnsConfig = new DNSConfig();
+        final Integer[] result = {null};
+
 
         public FileChoose Fc = new FileChoose();
+        public Maintenance maintenance = new Maintenance();
 
         private int proxyNumer;
         public List<DashboardModel> lista = new ArrayList<>();
@@ -70,7 +73,7 @@ DashboardController implements Initializable , KeyListener {
             Map<String, Map<String, String>> result = MetadataExtractor.getExecutableMetadataFromFolder(carpeta.getAbsolutePath());
             inicializarDatos(result);
             configurarInterfaz();
-            configurarFiltros();
+            //configurarFiltros();
         }
 
 
@@ -164,45 +167,6 @@ DashboardController implements Initializable , KeyListener {
         return columnaSeleccion;
     }
 
-    private void configurarFiltros() {
-            // Configurar categorías
-            List<String> categorias = todasLasAplicaciones.stream()
-                    .map(DashboardModel::getCategoria)
-                    .distinct()
-                    .toList();
-
-            comboFiltroCategoria.getItems().addAll("Todas");
-            comboFiltroCategoria.getItems().addAll(categorias);
-            comboFiltroCategoria.setValue("Todas");
-
-            // Configurar búsqueda
-            campoBusqueda.textProperty().addListener((obs, oldVal, newVal) -> filtrarAplicaciones());
-            comboFiltroCategoria.valueProperty().addListener((obs, oldVal, newVal) -> filtrarAplicaciones());
-        }
-
-        private void filtrarAplicaciones() {
-            aplicacionesFiltradas.setPredicate(app -> {
-                String filtroBusqueda = campoBusqueda.getText();
-                String filtroCategoria = comboFiltroCategoria.getValue();
-
-                // Filtro por búsqueda
-                if (filtroBusqueda != null && !filtroBusqueda.isEmpty()) {
-                    String lowerCaseFilter = filtroBusqueda.toLowerCase();
-                    if (!app.getNombre().toLowerCase().contains(lowerCaseFilter) &&
-                            !app.getDescripcion().toLowerCase().contains(lowerCaseFilter)) {
-                        return false;
-                    }
-                }
-
-                // Filtro por categoría
-                if (filtroCategoria != null && !filtroCategoria.equals("Todas")) {
-                    return app.getCategoria().equals(filtroCategoria);
-                }
-
-                return true;
-            });
-        }
-
         private void actualizarBotonInstalar() {
             boolean algunaSeleccionada = todasLasAplicaciones.stream()
                     .anyMatch(DashboardModel::isSeleccionado);
@@ -233,7 +197,6 @@ DashboardController implements Initializable , KeyListener {
                             message(Result);
                             if (Nombre.contains("Thunderbird")) {
                                 boolean thunderbird = confirmacion("Desea Agregar Carpeta de perfil?");
-
                                 if (thunderbird) {
                                     Fc.directoryChooser(botonInstalar);
                                 }
@@ -365,7 +328,6 @@ DashboardController implements Initializable , KeyListener {
         Button cancelButton = new Button("Cancelar");
         cancelButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
 
-        final Integer[] result = {null};
 
         okButton.setOnAction(e -> {
             try {
@@ -527,6 +489,398 @@ DashboardController implements Initializable , KeyListener {
             proxyConfig.ConfigurarProxy(proxyNumer);
             message("Proxy configurado correctamente.\n Proxy Actual: " + proxyConfig.getProxys()[proxyNumer]);
         }
+    }
+
+    public void Mantenimiento(ActionEvent event) {
+        Maintenance(proxyConfig, dnsConfig, (Stage) mainBorderPane.getScene().getWindow());
+    }
+
+    public void Maintenance(ProxyConfig proxyConfig, DNSConfig dnsConfig, Stage parentStage) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.APPLICATION_MODAL);
+        dialog.initOwner(parentStage);
+        dialog.setTitle("Gestión de Proxys y DNS");
+
+        // Obtener arrays actuales
+        String[] proxys = proxyConfig.getProxysArray(); // Asumiendo que existe este método
+        String[] dnsArray = dnsConfig.getDNSArray(); // Asumiendo que existe este método
+
+        // Construir mensaje con las opciones principales
+        StringBuilder mensajeBuilder = new StringBuilder("GESTIÓN DE CONFIGURACIÓN\n\n");
+
+        int index = 0;
+        int windowHeight = 400; // Altura base ajustada
+
+        // Mostrar proxys actuales
+        mensajeBuilder.append("=== PROXYS DISPONIBLES ===\n");
+        if (proxys != null && proxys.length > 0) {
+            for (String proxy : proxys) {
+                mensajeBuilder.append(proxy).append("\n");
+            }
+            windowHeight += proxys.length * 5;
+        } else {
+            mensajeBuilder.append("No hay proxys configurados\n");
+        }
+
+        // Mostrar DNS actuales
+        mensajeBuilder.append("\n=== DNS DISPONIBLES ===\n");
+        if (dnsArray != null && dnsArray.length > 0) {
+            for (String dns : dnsArray) {
+                mensajeBuilder.append(dns).append("\n");
+            }
+            windowHeight += dnsArray.length * 5;
+        } else {
+            mensajeBuilder.append("No hay DNS configurados\n");
+        }
+
+        mensajeBuilder.append("\n=== OPCIONES DE GESTIÓN ===\n");
+
+        // Opciones de gestión
+        int opcionBase = index;
+        String[] opcionesGestion = {
+                "Agregar nuevo Proxy",
+                "Modificar Proxy existente",
+                "Eliminar Proxy",
+                "Agregar nuevo DNS",
+                "Modificar DNS existente",
+                "Eliminar DNS",
+                "Desactivar Proxy",
+                "Agregar Setup a Directorio Raiz",
+                "Cancelar"
+        };
+
+        for (int i = 0; i < opcionesGestion.length; i++) {
+            mensajeBuilder.append((opcionBase + i)).append(": ").append(opcionesGestion[i]).append("\n");
+        }
+        windowHeight += opcionesGestion.length * 20 + 105 ;
+
+        Label label = new Label(mensajeBuilder.toString());
+        label.setStyle("-fx-font-size: 13px; -fx-font-weight: bold;");
+
+        TextField textField = new TextField();
+        textField.setPromptText("Escribe el número de la opción...");
+        textField.setStyle("-fx-font-size: 13px; -fx-padding: 8;");
+
+        Button okButton = new Button("Aceptar");
+        okButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
+
+        Button cancelButton = new Button("Cancelar");
+        cancelButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16;");
+
+        final Integer[] result = {null};
+
+        okButton.setOnAction(e -> {
+            try {
+                int valor = Integer.parseInt(textField.getText().trim());
+                int maxOpcion = opcionBase + opcionesGestion.length - 1;
+
+                if (valor >= 0 && valor <= maxOpcion) {
+                    // Si es una opción de proxy o DNS existente (para seleccionar)
+                    if (valor < opcionBase) {
+                        result[0] = valor;
+                        dialog.close();
+                    }
+                    // Si es una opción de gestión
+                    else {
+                        int opcionGestion = valor - opcionBase;
+                        procesarOpcionGestion(opcionGestion, proxyConfig, dnsConfig, dialog, label);
+                    }
+                } else {
+                    mostrarAlerta("Número fuera de rango. Debe estar entre 0 y " + maxOpcion);
+                }
+            } catch (NumberFormatException ex) {
+                mostrarAlerta("Por favor ingresa un número válido.");
+            }
+        });
+
+        cancelButton.setOnAction(e -> {
+            result[0] = null;
+            dialog.close();
+        });
+
+        HBox botones = new HBox(20, okButton, cancelButton);
+        botones.setStyle("-fx-alignment: center; -fx-padding: 10 0 0 0;");
+
+        VBox layout = new VBox(20, label, textField, botones);
+        layout.setStyle("-fx-padding: 30; -fx-background-color: #f0f0f0; -fx-border-color: #cccccc; -fx-border-radius: 8; -fx-background-radius: 8;");
+        layout.setPrefSize(500, windowHeight);
+
+        Scene scene = new Scene(layout);
+
+        scene.setOnKeyPressed(evt -> {
+            KeyCode code = evt.getCode();
+            if (code == KeyCode.ENTER) {
+                okButton.fire();
+            } else if (code == KeyCode.ESCAPE) {
+                cancelButton.fire();
+            }
+        });
+
+        dialog.setScene(scene);
+
+        dialog.showingProperty().addListener((obs, wasShowing, isNowShowing) -> {
+            if (isNowShowing) {
+                Platform.runLater(textField::requestFocus);
+            }
+        });
+
+        dialog.showAndWait();
+
+        proxyNumer = (result[0] != null) ? result[0] : -1;
+    }
+
+    // Método auxiliar para procesar opciones de gestión
+    private void procesarOpcionGestion(int opcion, ProxyConfig proxyConfig, DNSConfig dnsConfig, Stage dialog, Label label) {
+        try {
+            // Obtener arrays actualizados
+            String[] proxys = proxyConfig.updateProxys();
+            String[] dnsArray = dnsConfig.updateDNS();
+
+            switch (opcion) {
+                case 0: // Agregar nuevo Proxy
+                    String nuevoProxy = mostrarInputDialog("Agregar Proxy", "Ingrese el nuevo proxy (formato: IP:PUERTO):");
+                    if (nuevoProxy != null && !nuevoProxy.trim().isEmpty()) {
+                        Maintenance.addProxy(nuevoProxy.trim());
+                        mostrarInfo("Proxy agregado exitosamente");
+                        // Recargar proxys desde archivo .env y actualizar ProxyConfig
+                        List<String> nuevosProxys = Maintenance.getProxies();
+                        proxyConfig.setProxys(nuevosProxys.toArray(new String[0]));
+                        // Actualizar interfaz
+                        actualizarInterfaz(proxyConfig, dnsConfig, label);
+                    }
+                    break;
+
+                case 1: // Modificar Proxy existente
+                    if (proxys == null || proxys.length == 0) {
+                        mostrarAlerta("No hay proxys para modificar");
+                        return;
+                    }
+                    String proxyModificar = mostrarSeleccionSimple("Seleccionar Proxy a modificar",
+                            "Seleccione el proxy a modificar:", proxys);
+                    if (proxyModificar != null) {
+                        String nuevoValor = mostrarInputDialog("Modificar Proxy",
+                                "Proxy actual: " + proxyModificar + "\nIngrese el nuevo valor:");
+                        if (nuevoValor != null && !nuevoValor.trim().isEmpty()) {
+                            Maintenance.modifyProxy(proxyModificar, nuevoValor.trim());
+                            mostrarInfo("Proxy modificado exitosamente");
+                            // Recargar proxys desde archivo .env
+                            List<String> nuevosProxys = Maintenance.getProxies();
+                            proxyConfig.setProxys(nuevosProxys.toArray(new String[0]));
+                            // Actualizar interfaz
+                            actualizarInterfaz(proxyConfig, dnsConfig, label);
+                        }
+                    }
+                    break;
+
+                case 2: // Eliminar Proxy
+                    if (proxys == null || proxys.length == 0) {
+                        mostrarAlerta("No hay proxys para eliminar");
+                        return;
+                    }
+                    String proxyEliminar = mostrarSeleccionSimple("Eliminar Proxy",
+                            "Seleccione el proxy a eliminar:", proxys);
+                    if (proxyEliminar != null) {
+                        if (mostrarConfirmacion("¿Está seguro de eliminar el proxy: " + proxyEliminar + "?")) {
+                            Maintenance.removeProxy(proxyEliminar);
+                            mostrarInfo("Proxy eliminado exitosamente");
+                            // Recargar proxys desde archivo .env
+                            List<String> nuevosProxys = Maintenance.getProxies();
+                            proxyConfig.setProxys(nuevosProxys.toArray(new String[0]));
+                            // Actualizar interfaz
+                            actualizarInterfaz(proxyConfig, dnsConfig, label);
+                        }
+                    }
+                    break;
+
+                case 3: // Agregar nuevo DNS
+                    String nuevoDNS = mostrarInputDialog("Agregar DNS", "Ingrese el nuevo DNS (ejemplo: 8.8.8.8):");
+                    if (nuevoDNS != null && !nuevoDNS.trim().isEmpty()) {
+                        Maintenance.addDNS(nuevoDNS.trim());
+                        mostrarInfo("DNS agregado exitosamente");
+                        // Recargar DNS desde archivo .env
+                        List<String> nuevosDNS = Maintenance.getDNSList();
+                        dnsConfig.setDNS(nuevosDNS.toArray(new String[0]));
+                        // Actualizar interfaz
+                        actualizarInterfaz(proxyConfig, dnsConfig, label);
+                    }
+                    break;
+
+                case 4: // Modificar DNS existente
+                    if (dnsArray == null || dnsArray.length == 0) {
+                        mostrarAlerta("No hay DNS configurados para modificar");
+                        return;
+                    }
+                    String dnsModificar = mostrarSeleccionSimple("Seleccionar DNS a modificar",
+                            "Seleccione el DNS a modificar:", dnsArray);
+                    if (dnsModificar != null) {
+                        String nuevoDNSValor = mostrarInputDialog("Modificar DNS",
+                                "DNS actual: " + dnsModificar + "\nIngrese el nuevo valor:");
+                        if (nuevoDNSValor != null && !nuevoDNSValor.trim().isEmpty()) {
+                            Maintenance.modifyDNS(dnsModificar, nuevoDNSValor.trim());
+                            mostrarInfo("DNS modificado exitosamente");
+                            // Recargar DNS desde archivo .env
+                            List<String> nuevosDNS = Maintenance.getDNSList();
+                            dnsConfig.setDNS(nuevosDNS.toArray(new String[0]));
+                            // Actualizar interfaz
+                            actualizarInterfaz(proxyConfig, dnsConfig, label);
+                        }
+                    }
+                    break;
+
+                case 5: // Eliminar DNS
+                    if (dnsArray == null || dnsArray.length == 0) {
+                        mostrarAlerta("No hay DNS configurados para eliminar");
+                        return;
+                    }
+                    String dnsEliminar = mostrarSeleccionSimple("Eliminar DNS",
+                            "Seleccione el DNS a eliminar:", dnsArray);
+                    if (dnsEliminar != null) {
+                        if (mostrarConfirmacion("¿Está seguro de eliminar el DNS: " + dnsEliminar + "?")) {
+                            Maintenance.removeDNS(dnsEliminar);
+                            mostrarInfo("DNS eliminado exitosamente");
+                            // Recargar DNS desde archivo .env
+                            List<String> nuevosDNS = Maintenance.getDNSList();
+                            dnsConfig.setDNS(nuevosDNS.toArray(new String[0]));
+                            // Actualizar interfaz
+                            actualizarInterfaz(proxyConfig, dnsConfig, label);
+                        }
+                    }
+                    break;
+
+                case 6: // Desactivar Proxy
+                    // Retorna el índice correspondiente a "Desactivar Proxy"
+                    result[0] = (proxys != null ? proxys.length : 0);
+                    dialog.close();
+                    break;
+                case 7:
+                    maintenance.setOnCopySuccess(() -> {
+                        // 🔄 Reanalizar carpeta
+                        Map<String, Map<String, String>> result =
+                                MetadataExtractor.getExecutableMetadataFromFolder(carpeta.getAbsolutePath());
+
+                        // 🧹 Limpiar lista
+                        lista.clear();
+
+                        // ♻️ Volver a cargar datos
+                        inicializarDatos(result);
+
+                        // 🔃 Refrescar tabla
+                        tablaAplicaciones.refresh();
+
+                        System.out.println("UI actualizada después de copiar instalador.");
+                    });
+
+                    maintenance.chooseAndCopyInstaller((Stage) mainBorderPane.getScene().getWindow());
+                    break;
+                case 8: // Cancelar
+                    dialog.close();
+                    break;
+            }
+        } catch (IOException ex) {
+            mostrarAlerta("Error al realizar la operación: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    // Método para actualizar la interfaz
+    private void actualizarInterfaz(ProxyConfig proxyConfig, DNSConfig dnsConfig, Label label) {
+        try {
+            // Obtener arrays actualizados directamente desde las configuraciones
+            String[] proxys = proxyConfig.updateProxys();
+            String[] dnsArray = dnsConfig.updateDNS();
+
+            // Reconstruir el mensaje
+            StringBuilder mensajeBuilder = new StringBuilder("GESTIÓN DE CONFIGURACIÓN\n\n");
+
+            int index = 0;
+
+            // Mostrar proxys actuales
+            mensajeBuilder.append("=== PROXYS DISPONIBLES ===\n");
+            if (proxys != null && proxys.length > 0) {
+                for (String proxy : proxys) {
+                    mensajeBuilder.append(proxy).append("\n");
+                }
+            } else {
+                mensajeBuilder.append("No hay proxys configurados\n");
+            }
+
+            // Mostrar DNS actuales
+            mensajeBuilder.append("\n=== DNS DISPONIBLES ===\n");
+            if (dnsArray != null && dnsArray.length > 0) {
+                for (String dns : dnsArray) {
+                    mensajeBuilder.append(dns).append("\n");
+                }
+            } else {
+                mensajeBuilder.append("No hay DNS configurados\n");
+            }
+
+            mensajeBuilder.append("\n=== OPCIONES DE GESTIÓN ===\n");
+
+            // Opciones de gestión
+            int opcionBase = index;
+            String[] opcionesGestion = {
+                    "Agregar nuevo Proxy",
+                    "Modificar Proxy existente",
+                    "Eliminar Proxy",
+                    "Agregar nuevo DNS",
+                    "Modificar DNS existente",
+                    "Eliminar DNS",
+                    "Desactivar Proxy",
+                    "Agregar Setup a Directorio Raiz",
+                    "Cancelar"
+            };
+
+            for (int i = 0; i < opcionesGestion.length; i++) {
+                mensajeBuilder.append((opcionBase + i)).append(": ").append(opcionesGestion[i]).append("\n");
+            }
+
+            // Actualizar el texto del label
+            Platform.runLater(() -> label.setText(mensajeBuilder.toString()));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Métodos auxiliares para diálogos (ya los tienes)
+    private void mostrarAlerta(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.ERROR, mensaje);
+        alert.showAndWait();
+    }
+
+    private void mostrarInfo(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, mensaje);
+        alert.showAndWait();
+    }
+
+    private boolean mostrarConfirmacion(String mensaje) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, mensaje,
+                ButtonType.YES, ButtonType.NO);
+        return alert.showAndWait().orElse(ButtonType.NO) == ButtonType.YES;
+    }
+
+    private String mostrarInputDialog(String titulo, String mensaje) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle(titulo);
+        dialog.setHeaderText(null);
+        dialog.setContentText(mensaje);
+
+        return dialog.showAndWait().orElse(null);
+    }
+
+    private String mostrarSeleccionSimple(String titulo, String mensaje, String[] opciones) {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(opciones.length > 0 ? opciones[0] : "", opciones);
+        dialog.setTitle(titulo);
+        dialog.setHeaderText(null);
+        dialog.setContentText(mensaje);
+
+        return dialog.showAndWait().orElse(null);
+    }
+
+    // Método para obtener DNS actual desde archivo .env
+    private String obtenerDNSActual() throws IOException {
+        List<String> dnsList = Maintenance.getDNSList();
+        return String.join(";", dnsList);
     }
 }
 

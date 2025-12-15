@@ -64,9 +64,9 @@ public class FileChoose {
         }
     }
 
-    // Mover archivo a carpeta Insumos
+    // Mover archivo a carpeta Setups
     private String moveFile(File file) {
-        String destinoDir = System.getProperty("user.home") + "/Insumos";
+        String destinoDir = System.getProperty("user.home") + "/Setups";
         Path destinoPath = Path.of(destinoDir, file.getName());
 
         try {
