@@ -4,9 +4,12 @@ import com.appmanager.appmanager.Model.AppInstall;
 import com.appmanager.appmanager.Model.DashboardModel;
 import com.appmanager.appmanager.Utils.*;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
@@ -35,8 +38,6 @@ DashboardController implements Initializable , KeyListener {
         @FXML private BorderPane mainBorderPane;
         @FXML private TableView<DashboardModel> tablaAplicaciones;
         @FXML private TextField campoBusqueda;
-        @FXML private ProgressBar barraProgreso;
-        @FXML private Label etiquetaEstado;
         @FXML private Button botonInstalar;
         @FXML private Button botonMantenimiento;
         @FXML private VBox panelLateral;
@@ -193,14 +194,14 @@ DashboardController implements Initializable , KeyListener {
                         for(String Ruta : RutasSeleccionadas){
                             System.out.println("Instalando: " + Nombre);
                             System.out.println("Ruta: " + RutasSeleccionadas);
-                            String Result = appInstall.installApp(Nombre,Ruta);
-                            message(Result);
-                            if (Nombre.contains("Thunderbird")) {
+                            instalarConProgreso(Nombre,Ruta);
+                           /* if (Nombre.contains("Thunderbird")) {
                                 boolean thunderbird = confirmacion("Desea Agregar Carpeta de perfil?");
                                 if (thunderbird) {
                                     Fc.directoryChooser(botonInstalar);
                                 }
                             }
+                          */
                         }
                     }
                 }
@@ -208,6 +209,74 @@ DashboardController implements Initializable , KeyListener {
                 mostrarError("Error al iniciar instalación: " + e.getMessage());
             }
         }
+
+    public void instalarConProgreso(String appName, String absolutePath) {
+
+        // --- Crear ventana de progreso ---
+        Stage progressStage = new Stage();
+        progressStage.initModality(Modality.APPLICATION_MODAL);
+        progressStage.setTitle("Instalando " + appName);
+
+        ProgressBar progressBar = new ProgressBar();
+        progressBar.setPrefWidth(300);
+
+        Label statusLabel = new Label("Iniciando instalación...");
+
+        VBox box = new VBox(15, statusLabel, progressBar);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(20));
+
+        progressStage.setScene(new Scene(box, 350, 150));
+        progressStage.show();
+
+        // --- Crear tarea en segundo plano ---
+        Task<String> task = new Task<String>() {
+            @Override
+            protected String call() throws Exception {
+
+                updateMessage("Ejecutando instalador...");
+                updateProgress(0.3, 1);
+
+                // Llamamos a tu método del modelo
+                String resultado = appInstall.installApp(appName, absolutePath);
+
+                updateMessage("Finalizando...");
+                updateProgress(1, 1);
+
+                return resultado;
+            }
+        };
+
+        // --- Enlazar UI con Task ---
+        progressBar.progressProperty().bind(task.progressProperty());
+        statusLabel.textProperty().bind(task.messageProperty());
+
+        // --- Cuando termina ---
+        task.setOnSucceeded(e -> {
+            progressStage.close();
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Instalación completada");
+            alert.setHeaderText(appName);
+            alert.setContentText(task.getValue());
+            alert.showAndWait();
+        });
+
+        task.setOnFailed(e -> {
+            progressStage.close();
+
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("La instalación falló");
+            alert.setContentText(task.getException().getMessage());
+            alert.showAndWait();
+        });
+
+        // --- Ejecutar en otro hilo ---
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    }
 
         @FXML
         private void seleccionarTodo() {
@@ -272,7 +341,6 @@ DashboardController implements Initializable , KeyListener {
     }
 
     public void cambiarProxy(ActionEvent actionEvent) {
-
         int proxy = elegirProxy(proxyConfig.getProxys());
 
         if (proxy == proxyConfig.getProxys().length){
@@ -671,7 +739,6 @@ DashboardController implements Initializable , KeyListener {
                         }
                     }
                     break;
-
                 case 2: // Eliminar Proxy
                     if (proxys == null || proxys.length == 0) {
                         mostrarAlerta("No hay proxys para eliminar");
@@ -691,7 +758,6 @@ DashboardController implements Initializable , KeyListener {
                         }
                     }
                     break;
-
                 case 3: // Agregar nuevo DNS
                     String nuevoDNS = mostrarInputDialog("Agregar DNS", "Ingrese el nuevo DNS (ejemplo: 8.8.8.8):");
                     if (nuevoDNS != null && !nuevoDNS.trim().isEmpty()) {
@@ -704,7 +770,6 @@ DashboardController implements Initializable , KeyListener {
                         actualizarInterfaz(proxyConfig, dnsConfig, label);
                     }
                     break;
-
                 case 4: // Modificar DNS existente
                     if (dnsArray == null || dnsArray.length == 0) {
                         mostrarAlerta("No hay DNS configurados para modificar");
@@ -726,7 +791,6 @@ DashboardController implements Initializable , KeyListener {
                         }
                     }
                     break;
-
                 case 5: // Eliminar DNS
                     if (dnsArray == null || dnsArray.length == 0) {
                         mostrarAlerta("No hay DNS configurados para eliminar");
@@ -746,7 +810,6 @@ DashboardController implements Initializable , KeyListener {
                         }
                     }
                     break;
-
                 case 6: // Desactivar Proxy
                     // Retorna el índice correspondiente a "Desactivar Proxy"
                     result[0] = (proxys != null ? proxys.length : 0);
@@ -769,7 +832,6 @@ DashboardController implements Initializable , KeyListener {
 
                         System.out.println("UI actualizada después de copiar instalador.");
                     });
-
                     maintenance.chooseAndCopyInstaller((Stage) mainBorderPane.getScene().getWindow());
                     break;
                 case 8: // Cancelar
@@ -778,7 +840,6 @@ DashboardController implements Initializable , KeyListener {
             }
         } catch (IOException ex) {
             mostrarAlerta("Error al realizar la operación: " + ex.getMessage());
-            ex.printStackTrace();
         }
     }
 

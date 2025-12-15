@@ -11,7 +11,6 @@ import java.nio.file.Paths;
 public class AppInstall extends Component {
     // Carpeta externa "Setups" junto al JAR
     private final Path setupsDir;
-    public DashboardController dc;
 
     public AppInstall() {
         // Directorio actual donde se ejecuta el JAR

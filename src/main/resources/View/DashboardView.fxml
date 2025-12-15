@@ -2,7 +2,6 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
@@ -28,12 +27,12 @@
             <!-- Barra de herramientas -->
             <HBox alignment="CENTER_LEFT" spacing="15" HBox.hgrow="ALWAYS">
                 <Label styleClass="title-label" text="Aplicaciones Disponibles" />
-                <TextField fx:id="campoBusqueda" maxWidth="150" promptText="Buscar aplicaciones..." HBox.hgrow="ALWAYS" />
-                <Button onAction="#seleccionarTodo" prefHeight="49.0" prefWidth="170.0" styleClass="secondary-button" text="Seleccionar Todo" />
-                <Button fx:id="botonInstalar" onAction="#iniciarInstalacion" prefHeight="55.0" prefWidth="170.0" styleClass="primary-button" text="Instalar Seleccionadas" />
-                <Button fx:id="botonProxy" onAction="#cambiarProxy" prefHeight="55.0" prefWidth="170.0" styleClass="primary-button" text="Configurar Proxy" />
-            <Button fx:id="botonDNS" onAction="#ConfigurarDNS" prefHeight="55.0" prefWidth="170.0" styleClass="primary-button" text="Configurar DNS" />
-            <Button fx:id="botonMantenimiento" onAction="#Mantenimiento" prefHeight="55.0" prefWidth="170.0" styleClass="primary-button" text="Mantenimiento" />
+                <TextField fx:id="campoBusqueda" maxWidth="140" promptText="Buscar aplicaciones..." HBox.hgrow="ALWAYS" />
+                <Button onAction="#seleccionarTodo" prefHeight="49.0" prefWidth="165.0" styleClass="secondary-button" text="Seleccionar Todo" />
+                <Button fx:id="botonInstalar" onAction="#iniciarInstalacion" prefHeight="55.0" prefWidth="190.0" styleClass="primary-button" text="Instalar Seleccionadas" />
+                <Button fx:id="botonProxy" onAction="#cambiarProxy" prefHeight="55.0" prefWidth="165.0" styleClass="primary-button" text="Configurar Proxy" />
+            <Button fx:id="botonDNS" onAction="#ConfigurarDNS" prefHeight="55.0" prefWidth="165.0" styleClass="primary-button" text="Configurar DNS" />
+            <Button fx:id="botonMantenimiento" onAction="#Mantenimiento" prefHeight="55.0" prefWidth="165.0" styleClass="primary-button" text="Mantenimiento" />
             </HBox>
 
             <!-- Tabla de aplicaciones -->
@@ -44,10 +43,7 @@
             </TableView>
 
             <!-- Barra de estado -->
-            <VBox spacing="10" VBox.vgrow="ALWAYS">
-                <ProgressBar fx:id="barraProgreso" progress="0" />
-                <Label fx:id="etiquetaEstado" styleClass="status-label" text="Selecciona las aplicaciones que deseas instalar" />
-            </VBox>
+            <VBox spacing="10" VBox.vgrow="ALWAYS" />
 
         </VBox>
     </center>
