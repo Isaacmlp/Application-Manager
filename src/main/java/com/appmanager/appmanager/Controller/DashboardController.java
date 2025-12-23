@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import javafx.stage.Modality;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class
 DashboardController implements Initializable , KeyListener {
@@ -100,14 +101,14 @@ DashboardController implements Initializable , KeyListener {
            double sizeMB;
            for (Map.Entry<String, Map<String, String>> entry : Metadato.entrySet()) {
                Map<String, String> metadata = entry.getValue();
-               System.out.println(metadata.get("RelativePath") + "Path" );
+               System.out.println(metadata.get("AbsolutePath") + "Path" );
                lista.add(new DashboardModel(
                        metadata.get("FileName"),
                        metadata.get("FileDescription"),
                        metadata.get("FileVersion"),
                        sizeMB = getSafeDouble(metadata),
                        "Categoría",
-                       metadata.get("RelativePath"),
+                       metadata.get("AbsolutePath"),
                        "Comando de instalación"
 
                ));
@@ -174,6 +175,28 @@ DashboardController implements Initializable , KeyListener {
             botonInstalar.setDisable(!algunaSeleccionada);
         }
 
+        private void instalarSecuencialmente(List<String> nombres, List<String> rutas, int index) {
+            if (index >= nombres.size() || index >= rutas.size()) {
+                System.out.println("Todas las instalaciones han finalizado.");
+                return;
+            }
+
+            String nombre = nombres.get(index);
+            String ruta = rutas.get(index);
+            System.out.println("Instalando: " + nombre);
+            System.out.println("Ruta: " + ruta);
+
+            instalarConProgreso(nombre, ruta, (resultado) -> {
+                System.out.println("Instalación de " + nombre + " finalizada: " +
+                        (resultado ? "Éxito" : "Fallo"));
+
+                // Instalar la siguiente aplicación
+                Platform.runLater(() -> {
+                    instalarSecuencialmente(nombres, rutas, index + 1);
+                });
+            });
+        }
+
         @FXML
         private void iniciarInstalacion() {
             try {
@@ -190,19 +213,11 @@ DashboardController implements Initializable , KeyListener {
                         .toList();
 
                 if (!nombresSeleccionadas.isEmpty()) {
-                    for (String Nombre : nombresSeleccionadas) {
-                        for(String Ruta : RutasSeleccionadas){
-                            System.out.println("Instalando: " + Nombre);
-                            System.out.println("Ruta: " + RutasSeleccionadas);
-                            instalarConProgreso(Nombre,Ruta);
-                           /* if (Nombre.contains("Thunderbird")) {
-                                boolean thunderbird = confirmacion("Desea Agregar Carpeta de perfil?");
-                                if (thunderbird) {
-                                    Fc.directoryChooser(botonInstalar);
-                                }
-                            }
-                          */
-                        }
+                    int pairCount = Math.min(nombresSeleccionadas.size(), RutasSeleccionadas.size());
+                    if (pairCount == 0) {
+                        System.out.println("No hay aplicaciones o rutas para instalar.");
+                    } else {
+                        instalarSecuencialmente(nombresSeleccionadas, RutasSeleccionadas, 0);
                     }
                 }
             } catch (Exception e) {
@@ -210,8 +225,7 @@ DashboardController implements Initializable , KeyListener {
             }
         }
 
-    public void instalarConProgreso(String appName, String absolutePath) {
-
+    public void instalarConProgreso(String appName, String absolutePath, Consumer<Boolean> onComplete) {
         // --- Crear ventana de progreso ---
         Stage progressStage = new Stage();
         progressStage.initModality(Modality.APPLICATION_MODAL);
@@ -229,24 +243,28 @@ DashboardController implements Initializable , KeyListener {
         progressStage.setScene(new Scene(box, 350, 150));
         progressStage.show();
 
-        // --- Crear tarea en segundo plano ---
-        Task<String> task = new Task<String>() {
+        // --- Crear tarea en segundo plano que retorna boolean ---
+        Task<Boolean> task = new Task<>() {
             @Override
-            protected String call() throws Exception {
+            protected Boolean call() {
+                try {
+                    updateMessage("Ejecutando instalador...");
+                    updateProgress(0.3, 1);
 
-                updateMessage("Ejecutando instalador...");
-                updateProgress(0.3, 1);
+                    // Llamamos a tu método del modelo
+                    String resultado = appInstall.installApp(appName, absolutePath);
 
-                // Llamamos a tu método del modelo
-                String resultado = appInstall.installApp(appName, absolutePath);
+                    updateMessage("Finalizando...");
+                    updateProgress(1, 1);
 
-                updateMessage("Finalizando...");
-                updateProgress(1, 1);
-
-                return resultado;
+                    // Considerar éxito si no se lanzó excepción
+                    return true;
+                } catch (Exception ex) {
+                    updateMessage("Error: " + ex.getMessage());
+                    return false;
+                }
             }
         };
-
         // --- Enlazar UI con Task ---
         progressBar.progressProperty().bind(task.progressProperty());
         statusLabel.textProperty().bind(task.messageProperty());
@@ -254,12 +272,18 @@ DashboardController implements Initializable , KeyListener {
         // --- Cuando termina ---
         task.setOnSucceeded(e -> {
             progressStage.close();
+            boolean ok = Boolean.TRUE.equals(task.getValue());
 
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Instalación completada");
+            Alert alert = new Alert(ok ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR);
+            alert.setTitle(ok ? "Instalación completada" : "Error");
             alert.setHeaderText(appName);
-            alert.setContentText(task.getValue());
+            alert.setContentText(ok ? "Instalación finalizada correctamente." : "La instalación falló.");
             alert.showAndWait();
+
+            // Llamar al callback con el resultado
+            if (onComplete != null) {
+                onComplete.accept(ok);
+            }
         });
 
         task.setOnFailed(e -> {
@@ -268,8 +292,13 @@ DashboardController implements Initializable , KeyListener {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Error");
             alert.setHeaderText("La instalación falló");
-            alert.setContentText(task.getException().getMessage());
+            alert.setContentText(task.getException() != null ? task.getException().getMessage() : "Error desconocido");
             alert.showAndWait();
+
+            // Llamar al callback con false
+            if (onComplete != null) {
+                onComplete.accept(false);
+            }
         });
 
         // --- Ejecutar en otro hilo ---

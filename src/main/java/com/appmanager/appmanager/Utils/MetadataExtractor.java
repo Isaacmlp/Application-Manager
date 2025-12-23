@@ -333,6 +333,16 @@ public class MetadataExtractor {
                     continue;
                 }
 
+                // REGLA 4: Si es una carpeta de Office (2016, 2019, 2021, 2024)
+                if (isOfficeFolder(folderName)) {
+                    System.out.println("📁 Carpeta Office detectada: " + file.getAbsolutePath());
+                    // Buscar el .exe con el mismo nombre que la carpeta pero sin espacios
+                    findAndAddOfficeExe(file, executableFiles);
+                    // Marcar como procesada y NO entrar en subcarpetas
+                    processedSpecialFolders.add(file.getAbsolutePath());
+                    continue;
+                }
+
                 // Para otras carpetas, continuar recursión normalmente
                 findExecutableFilesRecursiveWithRules(file, executableFiles, baseFolderPath);
 
@@ -371,6 +381,32 @@ public class MetadataExtractor {
         }
 
         return depth;
+    }
+
+    /**
+     * Verifica si es una carpeta de Office
+     */
+    private static boolean isOfficeFolder(String folderName) {
+        if (folderName == null) return false;
+
+        // Lista de nombres de carpetas Office comunes
+        String[] officePatterns = {
+                "office 2016", "office2016",
+                "office 2019", "office2019",
+                "office 2021", "office2021",
+                "office 2024", "office2024",
+                "microsoft office 2016", "microsoft office2016",
+                "microsoft office 2019", "microsoft office2019",
+                "microsoft office 2021", "microsoft office2021",
+                "microsoft office 2024", "microsoft office2024"
+        };
+
+        for (String pattern : officePatterns) {
+            if (folderName.contains(pattern.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -451,6 +487,52 @@ public class MetadataExtractor {
     }
 
     /**
+     * Busca y agrega el .exe de Office con el mismo nombre que la carpeta (sin espacios)
+     */
+    private static void findAndAddOfficeExe(File officeFolder, List<File> executableFiles) {
+        System.out.println("   🔍 Buscando archivo .exe en carpeta Office: " + officeFolder.getName());
+
+        // Obtener el nombre de la carpeta sin espacios
+        String folderName = officeFolder.getName();
+        String exeNameWithoutSpaces = folderName.replace(" ", "") + ".exe";
+        String exeNameWithSpaces = folderName + ".exe";
+
+        System.out.println("   💡 Buscando archivos: ");
+        System.out.println("      - " + exeNameWithoutSpaces);
+        System.out.println("      - " + exeNameWithSpaces);
+
+        // Buscar primero el archivo sin espacios
+        File[] officeExeFiles = officeFolder.listFiles((dir, name) ->
+                name.equalsIgnoreCase(exeNameWithoutSpaces) ||
+                        name.equalsIgnoreCase(exeNameWithSpaces)
+        );
+
+        if (officeExeFiles != null && officeExeFiles.length > 0) {
+            for (File exeFile : officeExeFiles) {
+                executableFiles.add(exeFile);
+                System.out.println("   ✅ Archivo Office encontrado: " + exeFile.getName());
+            }
+        } else {
+            System.out.println("   ❌ No se encontró el archivo .exe específico");
+
+            // Buscar cualquier archivo .exe en la carpeta Office
+            File[] allExeFiles = officeFolder.listFiles((dir, name) ->
+                    name.toLowerCase().endsWith(".exe")
+            );
+
+            if (allExeFiles != null && allExeFiles.length > 0) {
+                System.out.println("   🔄 En su lugar, se encontraron estos archivos .exe:");
+                for (File exeFile : allExeFiles) {
+                    executableFiles.add(exeFile);
+                    System.out.println("      - " + exeFile.getName() + " (añadido)");
+                }
+            } else {
+                System.out.println("   ⚠ No se encontraron archivos .exe en la carpeta Office");
+            }
+        }
+    }
+
+    /**
      * Extrae metadatos de un archivo individual (.exe o .msi)
      */
     private static Map<String, String> extractSingleFileMetadata(File file, String baseFolderPath) {
@@ -490,7 +572,27 @@ public class MetadataExtractor {
 
                 // Para SIAR.msi, usar extracción robusta con manejo de errores
                 extractSIARMsiMetadataWithFallback(file, metadata);
-            } else {
+            }
+            // Marcar como archivo especial de Office
+            else if (file.getParent() != null &&
+                    isOfficeFolder(file.getParentFile().getName().toLowerCase()) &&
+                    file.getName().toLowerCase().endsWith(".exe")) {
+                metadata.put("IsOfficeInstallation", "true");
+                metadata.put("OfficeFolder", file.getParentFile().getName());
+
+                // Verificar si coincide con el patrón esperado
+                String parentFolderName = file.getParentFile().getName();
+                String expectedExeName = parentFolderName.replace(" ", "") + ".exe";
+                if (file.getName().equalsIgnoreCase(expectedExeName)) {
+                    metadata.put("OfficeExePattern", "Coincide con patrón: " + expectedExeName);
+                } else {
+                    metadata.put("OfficeExePattern", "No coincide con patrón esperado");
+                }
+
+                // Extraer metadatos de Office específicos
+                extractOfficeExeMetadata(file, metadata);
+            }
+            else {
                 // Extracción normal para otros archivos
                 if (file.getName().toLowerCase().endsWith(".exe")) {
                     extractExeMetadata(file, metadata);
@@ -512,6 +614,78 @@ public class MetadataExtractor {
         ensureRequiredFields(metadata, file);
 
         return metadata;
+    }
+
+    /**
+     * Extrae metadatos específicos para archivos .exe de Office
+     */
+    private static void extractOfficeExeMetadata(File file, Map<String, String> metadata) {
+        try {
+            // Primero extraer metadatos normales de EXE
+            extractExeMetadata(file, metadata);
+
+            // Agregar información específica de Office
+            String productName = metadata.getOrDefault("ProductName", "");
+            String fileDescription = metadata.getOrDefault("FileDescription", "");
+            String companyName = metadata.getOrDefault("CompanyName", "");
+
+            // Detectar versión de Office basada en el nombre de la carpeta o metadatos
+            String parentFolder = file.getParentFile().getName().toLowerCase();
+            String officeVersion = "Desconocida";
+
+            if (parentFolder.contains("2016")) {
+                officeVersion = "Office 2016";
+            } else if (parentFolder.contains("2019")) {
+                officeVersion = "Office 2019";
+            } else if (parentFolder.contains("2021")) {
+                officeVersion = "Office 2021";
+            } else if (parentFolder.contains("2024")) {
+                officeVersion = "Office 2024";
+            } else if (productName.contains("Office") || productName.contains("Microsoft Office")) {
+                // Intentar extraer versión del nombre del producto
+                if (productName.contains("2016")) officeVersion = "Office 2016";
+                else if (productName.contains("2019")) officeVersion = "Office 2019";
+                else if (productName.contains("2021")) officeVersion = "Office 2021";
+                else if (productName.contains("2024")) officeVersion = "Office 2024";
+            }
+
+            metadata.put("OfficeVersion", officeVersion);
+            metadata.put("OfficeType", detectOfficeType(productName, fileDescription));
+
+        } catch (Exception e) {
+            System.err.println("Error extrayendo metadatos específicos de Office: " + e.getMessage());
+            metadata.put("Office_ExtractionError", e.getMessage());
+        }
+    }
+
+    /**
+     * Detecta el tipo de Office (Pro Plus, Standard, etc.)
+     */
+    private static String detectOfficeType(String productName, String fileDescription) {
+        if (productName == null) productName = "";
+        if (fileDescription == null) fileDescription = "";
+
+        String combined = (productName + " " + fileDescription).toLowerCase();
+
+        if (combined.contains("pro plus") || combined.contains("professional plus")) {
+            return "Professional Plus";
+        } else if (combined.contains("standard")) {
+            return "Standard";
+        } else if (combined.contains("home") && combined.contains("business")) {
+            return "Home & Business";
+        } else if (combined.contains("home") && combined.contains("student")) {
+            return "Home & Student";
+        } else if (combined.contains("professional")) {
+            return "Professional";
+        } else if (combined.contains("enterprise")) {
+            return "Enterprise";
+        } else if (combined.contains("business")) {
+            return "Business";
+        } else if (combined.contains("365")) {
+            return "Microsoft 365";
+        }
+
+        return "Desconocido";
     }
 
     /**
@@ -814,6 +988,19 @@ public class MetadataExtractor {
             metadata.put("IsRootDisk1SIAR", "true");
             metadata.put("SpecialFile", "SIAR.msi en DISK1 de raíz");
         }
+
+        // Campos especiales para Office (si aplica)
+        if (file.getParent() != null &&
+                isOfficeFolder(file.getParentFile().getName().toLowerCase()) &&
+                file.getName().toLowerCase().endsWith(".exe")) {
+            metadata.put("IsOfficeInstallation", "true");
+            if (!metadata.containsKey("OfficeVersion")) {
+                metadata.put("OfficeVersion", "Desconocida");
+            }
+            if (!metadata.containsKey("OfficeType")) {
+                metadata.put("OfficeType", "Desconocido");
+            }
+        }
     }
 
     /**
@@ -838,7 +1025,8 @@ public class MetadataExtractor {
         System.out.println("  1. ❌ IGNORAR completamente cualquier carpeta llamada 'SIAR'");
         System.out.println("  2. 📁 En DISK1 cerca de la raíz: Buscar SOLO SIAR.msi");
         System.out.println("  3. 📁 En SAP Corpoelec/GUI: Buscar SOLO SetupAll.exe");
-        System.out.println("  4. 🔄 Después de procesar carpetas especiales, CONTINUAR con el resto");
+        System.out.println("  4. 🏢 En carpetas Office (2016/2019/2021/2024): Buscar .exe con mismo nombre sin espacios");
+        System.out.println("  5. 🔄 Después de procesar carpetas especiales, CONTINUAR con el resto");
         System.out.println("=".repeat(80) + "\n");
 
         // Extraer metadatos (con o sin ruta específica)
@@ -852,6 +1040,7 @@ public class MetadataExtractor {
         int totalFiles = results.size();
         int sapFiles = 0;
         int siarFiles = 0;
+        int officeFiles = 0;
         int regularFiles = 0;
 
         for (Map.Entry<String, Map<String, String>> entry : results.entrySet()) {
@@ -861,6 +1050,8 @@ public class MetadataExtractor {
                 sapFiles++;
             } else if ("true".equals(meta.get("IsRootDisk1SIAR"))) {
                 siarFiles++;
+            } else if ("true".equals(meta.get("IsOfficeInstallation"))) {
+                officeFiles++;
             } else {
                 regularFiles++;
             }
@@ -870,10 +1061,11 @@ public class MetadataExtractor {
         System.out.println("  • Total archivos analizados: " + totalFiles);
         System.out.println("  • Archivos SAP Corpoelec/GUI: " + sapFiles);
         System.out.println("  • Archivos SIAR en DISK1: " + siarFiles);
+        System.out.println("  • Archivos Office: " + officeFiles);
         System.out.println("  • Archivos regulares: " + regularFiles);
 
         // Mostrar detalles de archivos especiales
-        if (sapFiles > 0 || siarFiles > 0) {
+        if (sapFiles > 0 || siarFiles > 0 || officeFiles > 0) {
             System.out.println("\n⭐ ARCHIVOS ESPECIALES ENCONTRADOS:");
 
             for (Map.Entry<String, Map<String, String>> entry : results.entrySet()) {
@@ -900,6 +1092,20 @@ public class MetadataExtractor {
                         System.err.println("    💡 Se guardó información básica del archivo problemático");
                     }
                 }
+
+                if ("true".equals(meta.get("IsOfficeInstallation"))) {
+                    System.out.println("\n  🏢 Microsoft Office:");
+                    System.out.println("    • Archivo: " + filePath);
+                    System.out.println("    • Tamaño: " + meta.get("SizeMB") + " MB");
+                    System.out.println("    • Versión: " + meta.getOrDefault("OfficeVersion", "N/A"));
+                    System.out.println("    • Tipo: " + meta.getOrDefault("OfficeType", "N/A"));
+                    System.out.println("    • Producto: " + meta.getOrDefault("ProductName", "N/A"));
+                    System.out.println("    • Versión archivo: " + meta.getOrDefault("FileVersion", "N/A"));
+
+                    if (meta.containsKey("OfficeExePattern")) {
+                        System.out.println("    • Patrón: " + meta.get("OfficeExePattern"));
+                    }
+                }
             }
         }
 
@@ -909,7 +1115,8 @@ public class MetadataExtractor {
             for (Map.Entry<String, Map<String, String>> entry : results.entrySet()) {
                 Map<String, String> meta = entry.getValue();
                 if (!"true".equals(meta.get("IsSAPCorpoelecGUI")) &&
-                        !"true".equals(meta.get("IsRootDisk1SIAR"))) {
+                        !"true".equals(meta.get("IsRootDisk1SIAR")) &&
+                        !"true".equals(meta.get("IsOfficeInstallation"))) {
                     System.out.println("  • " + entry.getKey() + " (" + meta.get("SizeMB") + " MB)");
                 }
             }
